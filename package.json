@@ -15,6 +15,7 @@
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "jszip-utils": "^0.1.0",
+    "mammoth": "^1.9.0",
     "next": "15.0.2",
     "pizzip": "^3.1.7",
     "react": "19.0.0-rc-02c0e824-20241028",
@@ -28,6 +29,7 @@
     "eslint": "^8",
     "eslint-config-next": "15.0.2",
     "postcss": "^8",
+    "postcss-import": "^16.1.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
