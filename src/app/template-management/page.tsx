@@ -31,10 +31,19 @@ export default function TemplateManagementPage() {
     const loadTemplates = async () => {
         try {
             const response = await fetch('/api/templates');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                throw new Error('返回的数据格式不正确！');
+            }
             const data = await response.json();
             setTemplates(data);
         } catch (error) {
             console.error('Error loading templates:', error);
+            // 可以在这里添加用户友好的错误提示
+            alert('加载模板列表失败：' + (error instanceof Error ? error.message : '未知错误'));
         }
     };
 
