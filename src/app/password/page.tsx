@@ -27,7 +27,7 @@ export default function PasswordPage() {
         e.preventDefault();
         if (password === correctPassword) {
             localStorage.setItem("isAuthenticated", "true");
-            router.push("/"); // 跳转到主页
+            router.push("../"); // 跳转到主页
         } else {
             setError("Incorrect password. Please try again.");
         }

@@ -24,10 +24,10 @@ export default function Home() {
     const isAuthenticated = localStorage.getItem("isAuthenticated");
     if (isAuthenticated !== "true") {
       router.push("/password"); // 如果没有验证通过，跳转到密码页面
+    } else {
+      router.push("/menu"); // 如果已验证，跳转到菜单页面
     }
   }, [router]);
 
-  return (
-    <HomeContent />  // 将主页面内容分离到另一个组件中
-  );
+  return null; // 不直接渲染内容，由路由系统处理跳转
 }
