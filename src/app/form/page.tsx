@@ -1,7 +1,8 @@
 'use client';
 
 import { saveAs } from "file-saver";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 // 定义 formData 的类型
 interface FormDataType {
     issuanceDate: string;
@@ -43,6 +44,14 @@ const countries = [
 ];
 
 export default function HomeContent() {
+    const router = useRouter();
+
+    useEffect(() => {
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
+        if (isAuthenticated !== 'true') {
+            router.push('/password');
+        }
+    }, [router]);
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [formData, setFormData] = useState<FormDataType>(() => ({
@@ -140,7 +149,26 @@ export default function HomeContent() {
         }
     };
     return (
-        <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+            <button
+                onClick={() => router.push('/menu')}
+                className="absolute top-8 left-8 p-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                </svg>
+            </button>
             <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-8">
                 <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">Generate Admission Offer Letter</h1>
                 <form className="space-y-6 bg-white rounded-lg">
