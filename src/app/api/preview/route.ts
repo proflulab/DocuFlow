@@ -23,24 +23,40 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'File not found' }, { status: 404 });
         }
 
+        // 检查文件扩展名
+        const fileExt = path.extname(absolutePath).toLowerCase();
+        if (fileExt !== '.docx') {
+            return NextResponse.json({ error: 'Invalid file type. Only .docx files are supported' }, { status: 400 });
+        }
+
         const buffer = fs.readFileSync(absolutePath);
         
         // 使用mammoth将.docx文件转换为HTML
-        const result = await mammoth.convertToHtml({ buffer }, {
-            transformDocument: (element) => {
-                if (element.type === "table") {
-                    element.styleId = "TableGrid";
-                }
-                return element;
-            },
-            styleMap: [
-                "p[style-name='Normal'] => p:fresh",
-                "table => table.table.table-bordered",
-                "tr => tr",
-                "td => td"
-            ]
-        });
-        return NextResponse.json({ html: result.value });
+        try {
+            const result = await mammoth.convertToHtml({ buffer: buffer }, {
+                transformDocument: (element) => {
+                    if (element.type === "table") {
+                        element.styleId = "TableGrid";
+                    }
+                    return element;
+                },
+                styleMap: [
+                    "p[style-name='Normal'] => p:fresh",
+                    "table => table.table.table-bordered",
+                    "tr => tr",
+                    "td => td"
+                ]
+            });
+
+            if (!result || !result.value) {
+                throw new Error('Failed to convert document to HTML');
+            }
+
+            return NextResponse.json({ html: result.value });
+        } catch (conversionError) {
+            console.error('Error converting document:', conversionError);
+            return NextResponse.json({ error: 'Failed to convert document to HTML' }, { status: 500 });
+        }
     } catch (error) {
         console.error('Error reading file:', error);
         return NextResponse.json({ error: 'Failed to read file' }, { status: 500 });

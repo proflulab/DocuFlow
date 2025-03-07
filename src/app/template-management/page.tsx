@@ -2,10 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import mammoth from 'mammoth';
-import fs from 'fs';
-import path from 'path';
-import { promises as fsPromises } from 'fs';
 
 interface TemplateFile {
     name: string;
@@ -19,6 +15,7 @@ export default function TemplateManagementPage() {
     const [templates, setTemplates] = useState<TemplateFile[]>([]);
     const [previewContent, setPreviewContent] = useState<string>('');
     const [showPreview, setShowPreview] = useState(false);
+    const [error, setError] = useState<string>('');
 
     useEffect(() => {
         const isAuthenticated = localStorage.getItem('isAuthenticated');
@@ -42,26 +39,29 @@ export default function TemplateManagementPage() {
             setTemplates(data);
         } catch (error) {
             console.error('Error loading templates:', error);
-            // 可以在这里添加用户友好的错误提示
             alert('加载模板列表失败：' + (error instanceof Error ? error.message : '未知错误'));
         }
     };
 
     const handlePreview = async (templatePath: string) => {
         try {
+            setError('');
             const response = await fetch(`/api/preview?path=${encodeURIComponent(templatePath)}`);
             if (!response.ok) {
-                throw new Error('Failed to fetch preview');
+                const errorData = await response.json();
+                throw new Error(errorData.error || '预览文件失败');
             }
             const data = await response.json();
             if (data.html) {
                 setPreviewContent(data.html);
                 setShowPreview(true);
             } else {
-                console.error('No HTML content in response');
+                throw new Error('预览内容为空');
             }
         } catch (error) {
             console.error('Error previewing template:', error);
+            setError(error instanceof Error ? error.message : '预览文件时发生未知错误');
+            alert('预览失败：' + (error instanceof Error ? error.message : '未知错误'));
         }
     };
 
@@ -87,7 +87,12 @@ export default function TemplateManagementPage() {
                 </svg>
             </button>
             <div className="w-full max-w-6xl space-y-6">
-                <h1 className="text-3xl font-bold text-center mb-8">模板管理</h1>
+                <h1 className="text-3xl font-bold text-center mb-8 text-gray-900">模板管理</h1>
+                {error && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                        {error}
+                    </div>
+                )}
                 <div className="bg-white shadow-md rounded-lg overflow-hidden">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -123,7 +128,7 @@ export default function TemplateManagementPage() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto p-6">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold">文档预览</h2>
+                            <h2 className="text-xl font-bold text-gray-900">文档预览</h2>
                             <button
                                 onClick={() => setShowPreview(false)}
                                 className="text-gray-500 hover:text-gray-700"

@@ -5,7 +5,7 @@ import path from 'path';
 export async function GET() {
     try {
         const wordDir = path.join(process.cwd(), 'public', 'word');
-        const files = fs.readdirSync(wordDir);
+        const files = fs.readdirSync(wordDir).filter(file => file !== '.DS_Store');
 
         const templates = files.map(file => {
             const filePath = path.join(wordDir, file);
