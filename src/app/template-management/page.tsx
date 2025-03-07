@@ -65,6 +65,53 @@ export default function TemplateManagementPage() {
         }
     };
 
+    const handleDelete = async (templatePath: string) => {
+        try {
+            const response = await fetch(`/api/delete-template?path=${encodeURIComponent(templatePath)}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || '删除模板失败');
+            }
+            await loadTemplates(); // 重新加载模板列表
+            alert('模板删除成功');
+        } catch (error) {
+            console.error('删除模板失败:', error);
+            alert('删除模板失败：' + (error instanceof Error ? error.message : '未知错误'));
+        }
+    };
+
+    const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!file.name.endsWith('.docx')) {
+            alert('请上传 .docx 格式的文件');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/upload-template', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                throw new Error('上传失败');
+            }
+
+            await loadTemplates(); // 重新加载模板列表
+            alert('模板上传成功');
+        } catch (error) {
+            console.error('Error uploading template:', error);
+            alert('上传失败：' + (error instanceof Error ? error.message : '未知错误'));
+        }
+    };
+
     return (
         <main className="flex min-h-screen flex-col items-center p-24 bg-gray-100 relative">
             <button
@@ -87,7 +134,38 @@ export default function TemplateManagementPage() {
                 </svg>
             </button>
             <div className="w-full max-w-6xl space-y-6">
-                <h1 className="text-3xl font-bold text-center mb-8 text-gray-900">模板管理</h1>
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900">模板管理</h1>
+                    <div>
+                        <input
+                            type="file"
+                            accept=".docx"
+                            onChange={handleUpload}
+                            className="hidden"
+                            id="template-upload"
+                        />
+                        <label
+                            htmlFor="template-upload"
+                            className="inline-flex items-center px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 cursor-pointer transition-colors"
+                        >
+                            <svg
+                                className="w-5 h-5 mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M12 4v16m8-8H4"
+                                />
+                            </svg>
+                            增加模板
+                        </label>
+                    </div>
+                </div>
                 {error && (
                     <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
                         {error}
@@ -112,9 +190,15 @@ export default function TemplateManagementPage() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <button
                                             onClick={() => handlePreview(template.path)}
-                                            className="text-indigo-600 hover:text-indigo-900"
+                                            className="text-indigo-600 hover:text-indigo-900 mr-4"
                                         >
                                             预览
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(template.path)}
+                                            className="text-red-600 hover:text-red-900"
+                                        >
+                                            删除
                                         </button>
                                     </td>
                                 </tr>
