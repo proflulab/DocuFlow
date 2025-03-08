@@ -1,7 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { Editor } from '@tinymce/tinymce-react';
+import { Editor as TinyMCEEditor } from 'tinymce';
 
 interface TemplateFile {
     name: string;
@@ -16,6 +18,9 @@ export default function TemplateManagementPage() {
     const [previewContent, setPreviewContent] = useState<string>('');
     const [showPreview, setShowPreview] = useState(false);
     const [error, setError] = useState<string>('');
+    const [editingTemplate, setEditingTemplate] = useState<string>('');
+    const [editContent, setEditContent] = useState<string>('');
+    const editorRef = useRef<TinyMCEEditor | null>(null);
 
     useEffect(() => {
         const isAuthenticated = localStorage.getItem('isAuthenticated');
@@ -62,6 +67,55 @@ export default function TemplateManagementPage() {
             console.error('Error previewing template:', error);
             setError(error instanceof Error ? error.message : '预览文件时发生未知错误');
             alert('预览失败：' + (error instanceof Error ? error.message : '未知错误'));
+        }
+    };
+
+    const handleEdit = async (templatePath: string) => {
+        try {
+            setError('');
+            const response = await fetch(`/api/preview?path=${encodeURIComponent(templatePath)}`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || '加载文件失败');
+            }
+            const data = await response.json();
+            if (data.html) {
+                setEditContent(data.html);
+                setEditingTemplate(templatePath);
+            } else {
+                throw new Error('文件内容为空');
+            }
+        } catch (error) {
+            console.error('Error loading template for edit:', error);
+            setError(error instanceof Error ? error.message : '加载文件时发生未知错误');
+            alert('加载失败：' + (error instanceof Error ? error.message : '未知错误'));
+        }
+    };
+
+    const handleSave = async () => {
+        try {
+            const response = await fetch('/api/save-template', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    path: editingTemplate,
+                    content: editContent,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error('保存失败');
+            }
+
+            setEditingTemplate('');
+            setEditContent('');
+            await loadTemplates();
+            alert('保存成功');
+        } catch (error) {
+            console.error('Error saving template:', error);
+            alert('保存失败：' + (error instanceof Error ? error.message : '未知错误'));
         }
     };
 
@@ -187,12 +241,18 @@ export default function TemplateManagementPage() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{template.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{template.format}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{template.size}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-4">
                                         <button
                                             onClick={() => handlePreview(template.path)}
-                                            className="text-indigo-600 hover:text-indigo-900 mr-4"
+                                            className="text-indigo-600 hover:text-indigo-900"
                                         >
                                             预览
+                                        </button>
+                                        <button
+                                            onClick={() => handleEdit(template.path)}
+                                            className="text-blue-600 hover:text-blue-900"
+                                        >
+                                            编辑
                                         </button>
                                         <button
                                             onClick={() => handleDelete(template.path)}
@@ -223,6 +283,55 @@ export default function TemplateManagementPage() {
                         <div
                             className="prose max-w-none preview-content"
                             dangerouslySetInnerHTML={{ __html: previewContent }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {editingTemplate && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold text-gray-900">编辑模板</h2>
+                            <div className="flex space-x-4">
+                                <button
+                                    onClick={handleSave}
+                                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                                >
+                                    保存
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setEditingTemplate('');
+                                        setEditContent('');
+                                    }}
+                                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                                >
+                                    取消
+                                </button>
+                            </div>
+                        </div>
+                        <Editor
+                            apiKey={process.env.NEXT_PUBLIC_TINYMCE_API_KEY}
+                            onInit={(_evt: any, editor: TinyMCEEditor) => {
+                                editorRef.current = editor;
+                            }}
+                            value={editContent}
+                            onEditorChange={(content: string) => setEditContent(content)}
+                            init={{
+                                height: 500,
+                                menubar: true,
+                                plugins: [
+                                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                                    'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+                                ],
+                                toolbar: 'undo redo | blocks | ' +
+                                    'bold italic forecolor | alignleft aligncenter ' +
+                                    'alignright alignjustify | bullist numlist outdent indent | ' +
+                                    'removeformat | help',
+                                content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
+                            }}
                         />
                     </div>
                 </div>
