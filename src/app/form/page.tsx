@@ -1,7 +1,8 @@
 'use client';
 
 import { saveAs } from "file-saver";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 // 定义 formData 的类型
 interface FormDataType {
     issuanceDate: string;
@@ -43,6 +44,14 @@ const countries = [
 ];
 
 export default function HomeContent() {
+    const router = useRouter();
+
+    useEffect(() => {
+        const isAuthenticated = localStorage.getItem('isAuthenticated');
+        if (isAuthenticated !== 'true') {
+            router.push('/password');
+        }
+    }, [router]);
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [formData, setFormData] = useState<FormDataType>(() => ({
@@ -140,23 +149,41 @@ export default function HomeContent() {
         }
     };
     return (
-        <main style={{ display: "flex", flexDirection: "column", alignItems: "center", fontFamily: "Arial, sans-serif", marginTop: "2rem" }}>
-            <h1 style={{ fontSize: "2rem", color: "#333", marginBottom: "1rem" }}>Generate Admission Offer Letter</h1>
-            <form style={{ maxWidth: "500px", width: "100%", display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+            <button
+                onClick={() => router.push('/menu')}
+                className="absolute top-8 left-8 p-2 text-gray-600 hover:text-gray-800 transition-colors"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                >
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                </svg>
+            </button>
+            <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-8">
+                <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">Generate Admission Offer Letter</h1>
+                <form className="space-y-6 bg-white rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {Object.keys(formData).map((key) => (
-                    <div key={key} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                        <label style={{ fontWeight: "bold", color: "#555" }}>{key}</label>
+                    <div key={key} className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </label>
                         {key === "country" ? (
                             <select
                                 name={key}
-                                value={formData.country}
+                                value={formData[key as keyof FormDataType]}
                                 onChange={handleChange}
-                                style={{
-                                    padding: "0.5rem",
-                                    borderRadius: "4px",
-                                    border: "1px solid #ccc",
-                                    fontSize: "1rem",
-                                }}
+                                className="mt-1 block w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                             >
                                 {countries.map((country) => (
                                     <option key={country} value={country}>
@@ -168,54 +195,54 @@ export default function HomeContent() {
                             <input
                                 type={key.includes("Date") ? "date" : "text"}
                                 name={key}
-                                value={(formData as unknown as Record<string, string>)[key]} // 使用类型断言替代 any
+                                value={(formData as unknown as Record<string, string>)[key]}
                                 onChange={handleChange}
-                                style={{
-                                    padding: "0.5rem",
-                                    borderRadius: "4px",
-                                    border: "1px solid #ccc",
-                                    fontSize: "1rem",
-                                    width: "100%",
-                                }}
+                                className="mt-1 block w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                             />
                         )}
                     </div>
                 ))}
-                <button
-                    type="button"
-                    onClick={generateDocument}
-                    disabled={isGeneratingDocx} // 禁用按钮
-                    style={{
-                        padding: "0.75rem",
-                        backgroundColor: isGeneratingDocx ? "#ccc" : "#0070f3", // 加载时改变颜色
-                        color: "white",
-                        fontSize: "1rem",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: isGeneratingDocx ? "not-allowed" : "pointer", // 加载时改变光标
-                        marginTop: "1rem",
-                    }}
-                >
-                    {isGeneratingDocx ? "Generating..." : "Generate Document"}
-                </button>
-                <button
-                    type="button"
-                    onClick={generatePdf}
-                    disabled={isGeneratingPdf} // 禁用按钮
-                    style={{
-                        padding: "0.75rem",
-                        backgroundColor: isGeneratingPdf ? "#ccc" : "#0070f3", // 加载时改变颜色
-                        color: "white",
-                        fontSize: "1rem",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: isGeneratingPdf ? "not-allowed" : "pointer", // 加载时改变光标
-                        marginTop: "1rem",
-                    }}
-                >
-                    {isGeneratingPdf ? "Generating..." : "PDF Document"}
-                </button>
-            </form>
+                    </div>
+                    <div className="mt-8 flex flex-col space-y-4">
+                        <button
+                            type="button"
+                            onClick={generateDocument}
+                            disabled={isGeneratingDocx}
+                            className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isGeneratingDocx ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'}`}
+                        >
+                            {isGeneratingDocx ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Generating...
+                                </>
+                            ) : (
+                                "docx Document"
+                            )}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={generatePdf}
+                            disabled={isGeneratingPdf}
+                            className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isGeneratingPdf ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'}`}
+                        >
+                            {isGeneratingPdf ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Generating...
+                                </>
+                            ) : (
+                                "PDF Document"
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
         </main>
     );
 }
