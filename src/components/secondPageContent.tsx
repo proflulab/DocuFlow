@@ -1,310 +1,110 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
 
 export default function SecondPageContent() {
-    const router = useRouter();
-    const [searchId, setSearchId] = useState('');
-    const [isSearching, setIsSearching] = useState(false);
-    const [searchResult, setSearchResult] = useState<{ success: boolean; message: string } | null>(null);
-    const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
-    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-    const [isValidId, setIsValidId] = useState(false);
-    const [formData, setFormData] = useState({
-        name: '',
-        country: '',
-        state: '',
-        city: '',
-        postalCode: '',
-        address: '',
-        studentID: '',
-        programName: '',
-        issuanceDate: '',
-        startDate: '',
-        endDate: '',
-        tuitionFeeUSD: '',
-    });
+    const [data, setData] = useState<any[]>([]);
+    const [headers, setHeaders] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        if (name === 'searchId') {
-            setSearchId(value);
-            setIsValidId(false);
-        } else {
-            setFormData(prevData => ({
-                ...prevData,
-                [name]: value,
-            }));
-        }
-    };
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
 
-    const formatDate = (dateString: string) => {
-        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: '2-digit' };
-        return new Date(dateString).toLocaleDateString('en-US', options);
-    };
+        setIsLoading(true);
+        const reader = new FileReader();
 
-    const generateDocument = async () => {
-        setIsGeneratingDocx(true);
-        const formattedData = {
-            ...formData,
-            issuanceDate: formatDate(formData.issuanceDate),
-            startDate: formatDate(formData.startDate),
-            endDate: formatDate(formData.endDate),
-        };
-    
-        try {
-            const response = await fetch("/api/generate_document", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(formattedData),
-            });
-            const blob = await response.blob();
-            saveAs(blob, "Lulab_invioce_" + formattedData.name + ".docx");
-        } catch (error) {
-            console.error("Error generating document:", error);
-        } finally {
-            setIsGeneratingDocx(false);
-        }
-    };
+        reader.onload = (e) => {
+            try {
+                const data = e.target?.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-    const generatePdf = async () => {
-        setIsGeneratingPdf(true);
-        const formattedData = {
-            ...formData,
-            issuanceDate: formatDate(formData.issuanceDate),
-            startDate: formatDate(formData.startDate),
-            endDate: formatDate(formData.endDate),
-        };
-    
-        try {
-            const response = await fetch("/api/pdf_document", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(formattedData),
-            });
-    
-            if (!response.ok) {
-                throw new Error("Failed to generate PDF");
+                if (jsonData.length > 0) {
+                    setHeaders(Object.keys(jsonData[0]));
+                    setData(jsonData);
+                }
+            } catch (error) {
+                console.error('Error parsing Excel file:', error);
+                alert('Error parsing Excel file. Please make sure it\'s a valid Excel file.');
+            } finally {
+                setIsLoading(false);
             }
-    
-            const blob = await response.blob();
-            saveAs(blob, "Lulab_invioce_" + formattedData.name + ".pdf");
-        } catch (error) {
-            console.error("Error generating PDF:", error);
-            alert("Failed to generate PDF. Please try again.");
-        } finally {
-            setIsGeneratingPdf(false);
-        }
-    };
+        };
 
-    const handleSearch = async () => {
-        if (!searchId.trim()) {
-            alert("请输入要搜索的ID");
-            return;
-        }
-    
-        setIsSearching(true);
-        try {
-            const response = await fetch(`/api/cache?id=${searchId}`, {
-                method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            });
-    
-            const data = await response.json();
-            console.log('缓存数据:', data);
-            
-            if (data && data.data && data.data.items && data.data.items[0]) {
-                const fields = data.data.items[0].fields;
-                const name = fields.Name && fields.Name[0] ? fields.Name[0].en_name : "";
-                
-                setFormData({
-                    ...formData,
-                    name: name,
-                    country: fields.country === "新西兰" ? "New Zealand" : (fields.Country || "China"),
-                    state: fields.State || "",
-                    city: fields.City || "",
-                    postalCode: fields["Postal Code"] || "",
-                    address: fields.Address || "",
-                    studentID: fields.ID || "",
-                    programName: fields.ProgramName || "Practical Training Club",
-                    issuanceDate: fields.IssuanceDate || "",
-                    startDate: fields.StartDate || "",
-                    endDate: fields.EndDate || "",
-                    tuitionFeeUSD: fields.TuitionFeeUSD || "",
-                });
-                setSearchResult({ success: true, message: 'ID正确' });
-                setIsValidId(true);
-            } else {
-                setSearchResult({ success: false, message: 'ID错误' });
-                setIsValidId(false);
-            }
-        } catch (error) {
-            console.error("搜索错误:", error);
-            setSearchResult({ success: false, message: '搜索失败，请稍后重试' });
-        } finally {
-            setIsSearching(false);
-            setTimeout(() => {
-                setSearchResult(null);
-            }, 3000);
-        }
+        reader.onerror = () => {
+            console.error('Error reading file');
+            alert('Error reading file. Please try again.');
+            setIsLoading(false);
+        };
+
+        reader.readAsBinaryString(file);
     };
 
     return (
-        <main style={{ display: "flex", flexDirection: "column", alignItems: "center", fontFamily: "Arial, sans-serif", marginTop: "2rem" }}>
-            <h1 style={{ fontSize: "2rem", color: "#333", marginBottom: "1rem" }}>Generate Admission Offer Letter - Page 2</h1>
+        <div className="max-w-6xl mx-auto">
+            <h1 className="text-3xl font-bold mb-8 text-center">Excel Data Import</h1>
             
-            <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem", width: "500px" }}>
-                <div style={{ flex: 1, position: "relative" }}>
+            <div className="mb-8">
+                <label className="block mb-4">
+                    <span className="sr-only">Choose Excel file</span>
                     <input
-                        type="text"
-                        name="searchId"
-                        value={searchId}
-                        onChange={handleChange}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                handleSearch();
-                            }
-                        }}
-                        placeholder="Enter ID to search"
-                        style={{
-                            padding: "0.5rem",
-                            borderRadius: "4px",
-                            border: `1px solid ${searchResult ? (searchResult.success ? '#4CAF50' : '#f44336') : '#ccc'}`,
-                            fontSize: "1rem",
-                            width: "100%"
-                        }}
+                        type="file"
+                        accept=".xlsx, .xls"
+                        onChange={handleFileUpload}
+                        className="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100"
+                        disabled={isLoading}
                     />
-                    {searchResult && (
-                        <div style={{
-                            position: "absolute",
-                            top: "100%",
-                            left: 0,
-                            marginTop: "4px",
-                            fontSize: "0.875rem",
-                            color: searchResult.success ? '#4CAF50' : '#f44336'
-                        }}>
-                            {searchResult.message}
-                        </div>
-                    )}
-                </div>
-                <button
-                    onClick={handleSearch}
-                    disabled={isSearching}
-                    style={{
-                        padding: "0.5rem 1rem",
-                        backgroundColor: isSearching ? "#ccc" : "#0070f3",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: isSearching ? "not-allowed" : "pointer",
-                        fontSize: "1rem",
-                        minWidth: "80px",
-                    }}
-                >
-                    {isSearching ? (
-                        <span style={{
-                            display: "inline-block",
-                            animation: "dotAnimation 1.4s infinite"
-                        }}>
-                            搜索中...
-                        </span>
-                    ) : "搜索"}
-                </button>
+                </label>
             </div>
 
-            <form style={{ 
-                maxWidth: "500px", 
-                width: "100%", 
-                display: "flex", 
-                flexDirection: "column", 
-                gap: "1rem",
-                transform: "scale(0.1)",
-                transformOrigin: "top center",
-                height: "10px",
-                overflow: "hidden"
-            }}>
-                {Object.keys(formData).map((key) => (
-                    <div key={key} style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                        <label style={{ fontWeight: "bold", color: "#555" }}>{key}</label>
-                        <input
-                            type="text"
-                            name={key}
-                            value={(formData as any)[key]}
-                            onChange={handleChange}
-                            style={{
-                                padding: "0.5rem",
-                                borderRadius: "4px",
-                                border: "1px solid #ccc",
-                                fontSize: "1rem",
-                                width: "100%",
-                            }}
-                        />
-                    </div>
-                ))}
-            </form>
+            {isLoading && (
+                <div className="text-center mb-8">
+                    <p className="text-gray-600">Loading...</p>
+                </div>
+            )}
 
-            <button
-                type="button"
-                onClick={generateDocument}
-                disabled={isGeneratingDocx || !isValidId}
-                style={{
-                    padding: "0.75rem",
-                    backgroundColor: (isGeneratingDocx || !isValidId) ? "#ccc" : "#0070f3",
-                    color: "white",
-                    fontSize: "1rem",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: (isGeneratingDocx || !searchResult?.success) ? "not-allowed" : "pointer",
-                    marginTop: "1rem",
-                    width: "200px"
-                }}
-            >
-                {isGeneratingDocx ? "Generating..." : "Generate Document"}
-            </button>
-            <button
-                type="button"
-                onClick={generatePdf}
-                disabled={isGeneratingPdf || !isValidId}
-                style={{
-                    padding: "0.75rem",
-                    backgroundColor: isGeneratingPdf 
-                        ? "#ccc" 
-                        : !isValidId
-                            ? "#ccc" 
-                            : "#FFA500",
-                    color: "white",
-                    fontSize: "1rem",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: (isGeneratingPdf || !searchResult?.success) ? "not-allowed" : "pointer",
-                    marginTop: "1rem",
-                    width: "200px"
-                }}
-            >
-                {isGeneratingPdf ? "Generating..." : "PDF Document"}
-            </button>
-        </main>
+            {data.length > 0 && (
+                <div className="overflow-x-auto shadow-md rounded-lg">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                {headers.map((header, index) => (
+                                    <th
+                                        key={index}
+                                        scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                    >
+                                        {header}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {data.map((row, rowIndex) => (
+                                <tr key={rowIndex}>
+                                    {headers.map((header, colIndex) => (
+                                        <td
+                                            key={`${rowIndex}-${colIndex}`}
+                                            className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                        >
+                                            {row[header]?.toString() || ''}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+        </div>
     );
-}
-
-const styles = `
-@keyframes dotAnimation {
-    0% { opacity: 1; }
-    50% { opacity: 0.3; }
-    100% { opacity: 1; }
-}
-`;
-
-if (typeof document !== 'undefined') {
-    const styleSheet = document.createElement("style");
-    styleSheet.innerText = styles;
-    document.head.appendChild(styleSheet);
 }
