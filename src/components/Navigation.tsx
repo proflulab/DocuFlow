@@ -16,7 +16,7 @@ export default function Navigation() {
                                 href="/"
                                 className={`inline-flex items-center px-1 pt-1 ${
                                     pathname === '/' 
-                                        ? 'border-b-2 border-indigo-500 text-gray-900' 
+                                        ? 'border-b-2 border-amber-500 text-gray-900' 
                                         : 'text-gray-900 hover:text-gray-500'
                                 }`}
                             >
@@ -26,7 +26,7 @@ export default function Navigation() {
                                 href="/form"
                                 className={`inline-flex items-center px-1 pt-1 ${
                                     pathname === '/form' 
-                                        ? 'border-b-2 border-indigo-500 text-gray-900' 
+                                        ? 'border-b-2 border-amber-500 text-gray-900' 
                                         : 'text-gray-900 hover:text-gray-500'
                                 }`}
                             >
@@ -36,7 +36,7 @@ export default function Navigation() {
                                 href="/second"
                                 className={`inline-flex items-center px-1 pt-1 ${
                                     pathname === '/second'
-                                        ? 'border-b-2 border-indigo-500 text-gray-900' 
+                                        ? 'border-b-2 border-amber-500 text-gray-900' 
                                         : 'text-gray-900 hover:text-gray-500'
                                 }`}
                             >
@@ -46,7 +46,7 @@ export default function Navigation() {
                                 href="/history"
                                 className={`inline-flex items-center px-1 pt-1 ${
                                     pathname === '/history'
-                                        ? 'border-b-2 border-indigo-500 text-gray-900' 
+                                        ? 'border-b-2 border-amber-500 text-gray-900' 
                                         : 'text-gray-900 hover:text-gray-500'
                                 }`}
                             >
