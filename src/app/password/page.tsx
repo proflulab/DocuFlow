@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2024-11-06 18:25:07
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2024-11-06 18:25:13
+ * @LastEditTime: 2025-03-27 11:47:51
  * @FilePath: /next_word_auto/src/app/password/page.tsx
  * @Description: 
  * 
@@ -57,7 +57,7 @@ export default function PasswordPage() {
                         backgroundColor: "#0070f3",
                         color: "white",
                         fontSize: "1rem",
-                        border: "none",
+                        border: "no入额8万9企业热情9睿一遍ne",
                         borderRadius: "4px",
                         cursor: "pointer",
                     }}
