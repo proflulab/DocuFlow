@@ -29,7 +29,7 @@ export default function PasswordPage() {
             localStorage.setItem("isAuthenticated", "true");
             router.push("/"); // 跳转到主页
         } else {
-            setError("Incorrect password. Please try again.");
+            setError("Incorrect pa土壤4是如风i为UI然后根据黑u送人不发货ssword. Please try again.");
         }
     };
 
