@@ -42,6 +42,16 @@ export default function Navigation() {
                             >
                                 多维表格导入
                             </Link>
+                            <Link 
+                                href="/history"
+                                className={`inline-flex items-center px-1 pt-1 ${
+                                    pathname === '/history'
+                                        ? 'border-b-2 border-indigo-500 text-gray-900' 
+                                        : 'text-gray-900 hover:text-gray-500'
+                                }`}
+                            >
+                                历史记录
+                            </Link>
                         </div>
                     </div>
                 </div>
