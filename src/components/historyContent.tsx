@@ -5,7 +5,16 @@ import { useRouter } from 'next/navigation';
 
 export default function HistoryContent() {
     const router = useRouter();
-    const [historyData, setHistoryData] = useState([]);
+    interface HistoryItem {
+        id: string;
+        name: string;
+        studentID: string;
+        status: 'completed' | 'processing';
+        date: string;
+        documentType: string;
+    }
+
+    const [historyData, setHistoryData] = useState<HistoryItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -37,7 +46,7 @@ export default function HistoryContent() {
             <h1 className="text-2xl font-bold mb-6">历史记录</h1>
             <div className="grid gap-4">
                 {historyData.length > 0 ? (
-                    historyData.map((item: any, index: number) => (
+                    historyData.map((item, index) => (
                         <div key={index} className="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition-shadow duration-200">
                             <div className="flex justify-between items-start mb-4">
                                 <div>

@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
     try {
         const data = await request.json();
-        // 处理 PDF 生成逻辑
-        // 返回生成的 PDF
-        return new NextResponse(Buffer.from('pdf content'), {
+        // 使用data中的内容生成PDF
+        const pdfContent = data.content || 'Default PDF content';
+        return new NextResponse(Buffer.from(pdfContent), {
             headers: {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': 'attachment; filename=document.pdf'

@@ -298,7 +298,7 @@ export default function SecondPageContent() {
                         <input
                             type="text"
                             name={key}
-                            value={(formData as any)[key]}
+                            value={formData[key as keyof FormDataType]}
                             onChange={handleChange}
                             style={{
                                 padding: "0.5rem",
