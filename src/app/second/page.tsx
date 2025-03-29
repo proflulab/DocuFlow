@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Navigation from '@/components/Navigation';
 import SecondPageContent from '@/components/secondPageContent';
 

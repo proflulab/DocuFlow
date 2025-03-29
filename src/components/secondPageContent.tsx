@@ -44,7 +44,6 @@ const countries = [
 
 export default function SecondPageContent() {
     const router = useRouter();
-    // 添加新的状态
     const [isValidId, setIsValidId] = useState(false);
     const [searchResult, setSearchResult] = useState<{ success: boolean; message: string } | null>(null);
     const [isSearching, setIsSearching] = useState(false);
@@ -54,7 +53,7 @@ export default function SecondPageContent() {
     const [idExists, setIdExists] = useState<boolean | null>(null);
     const [formData, setFormData] = useState<FormDataType>({
         name: "",
-        country: "China",
+        country: countries[0],
         state: "",
         city: "",
         postalCode: "",
@@ -67,17 +66,28 @@ export default function SecondPageContent() {
         tuitionFeeUSD: "",
     });
 
-    // 从 homeContent.tsx 复制所有函数的实现
     const handleIdSearch = async (id: string) => {
-        if (!id.trim()) return;
+        if (!id.trim()) {
+            setSearchResult({ success: false, message: 'Please enter an ID' });
+            return;
+        }
         setIsSearching(true);
         try {
             const response = await fetch(`/api/cache?id=${encodeURIComponent(id)}`);
             const data = await response.json();
-            setIdExists(data.data.items.length > 0);
+            const exists = data.data.items.length > 0;
+            setIdExists(exists);
+            setSearchResult({
+                success: exists,
+                message: exists ? 'ID found in database' : 'ID not found'
+            });
+            if (!exists) {
+                router.push('/form');
+            }
         } catch (error) {
             console.error('Error searching ID:', error);
             setIdExists(null);
+            setSearchResult({ success: false, message: 'Error searching ID' });
         } finally {
             setIsSearching(false);
         }
