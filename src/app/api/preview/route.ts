@@ -37,18 +37,68 @@ export async function GET(request: Request) {
                 {
                     styleMap: [
                         "p[style-name='Section Title'] => h1:fresh",
-                        "p[style-name='Subsection Title'] => h2:fresh"
+                        "p[style-name='Subsection Title'] => h2:fresh",
+                        "p[style-name='Normal'] => p:fresh",
+                        "p[style-name='List Paragraph'] => p.list-paragraph:fresh",
+                        "table => table.doc-table",
+                        "r[style-name='Strong'] => strong:fresh",
+                        "r[style-name='Emphasis'] => em:fresh",
+                        "r[color] => span.color-{color}:fresh",
+                        "p[color] => p.color-{color}:fresh",
+                        "table[style-name] => table.{style-name}:fresh",
+                        "tr[style-name] => tr.{style-name}:fresh",
+                        "td[style-name] => td.{style-name}:fresh"
                     ],
-                    includeDefaultStyleMap: true
+                    includeDefaultStyleMap: true,
+                    ignoreEmptyParagraphs: true
                 }
             );
+            
+            // 添加基础样式
+            const styledHtml = `
+                <style>
+                    .doc-preview {
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #000;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+                    .doc-preview h1 { font-size: 24px; margin: 20px 0; color: #000; }
+                    .doc-preview h2 { font-size: 20px; margin: 16px 0; color: #000; }
+                    .doc-preview p { margin: 12px 0; color: #000; }
+                    .doc-preview .list-paragraph { margin-left: 20px; }
+                    .doc-preview .doc-table {
+                        border-collapse: collapse;
+                        width: 100%;
+                        margin: 16px 0;
+                    }
+                    .doc-preview .doc-table td, .doc-preview .doc-table th {
+                        border: 1px solid #E5E7EB;
+                        padding: 12px;
+                        color: #374151;
+                    }
+                    .doc-preview .doc-table th {
+                        background-color: #f5f5f5;
+                        font-weight: bold;
+                    }
+                    .doc-preview [class^='color-'] {
+                        color: inherit;
+                    }
+                    .doc-preview .color-000000 { color: #000; }
+                    .doc-preview .color-0000FF { color: #00F; }
+                    .doc-preview .color-FF0000 { color: #F00; }
+                </style>
+                <div class="doc-preview">${result.value}</div>
+            `;
             console.log('文件转换完成');
 
             if (result.messages.length > 0) {
                 console.warn('转换过程中的警告:', result.messages);
             }
 
-            return NextResponse.json({ html: result.value });
+            return NextResponse.json({ html: styledHtml });
         } catch (fetchError) {
             console.error('获取或转换文件失败:', fetchError);
             const errorMessage = fetchError instanceof Error ? fetchError.message : '获取或转换文件失败';
