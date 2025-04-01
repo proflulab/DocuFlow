@@ -52,7 +52,8 @@ export default function TemplateManagementPage() {
         try {
             setError('');
             setShowPreview(false);
-            const response = await fetch(`/api/preview?path=${encodeURIComponent(templatePath)}`);
+            // 每次预览时强制刷新缓存
+            const response = await fetch(`/api/preview?path=${encodeURIComponent(templatePath)}&t=${Date.now()}`);
             const data = await response.json();
             
             if (!response.ok) {
@@ -76,7 +77,8 @@ export default function TemplateManagementPage() {
     const handleEdit = async (templatePath: string) => {
         try {
             setError('');
-            const response = await fetch(`/api/preview?path=${encodeURIComponent(templatePath)}`);
+            // 每次编辑时强制刷新缓存
+            const response = await fetch(`/api/preview?path=${encodeURIComponent(templatePath)}&t=${Date.now()}`);
             if (!response.ok) {
                 const errorData = await response.json();
                 throw new Error(errorData.error || '加载文件失败');

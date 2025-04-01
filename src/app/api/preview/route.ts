@@ -19,8 +19,19 @@ export async function GET(request: Request) {
 
         try {
             // 获取文件内容
-            console.log('正在获取文件:', path);
-            const response = await fetch(path);
+            const fileUrl = new URL(path);
+            const timestamp = Date.now().toString();
+            fileUrl.searchParams.append('t', timestamp);
+            
+            const response = await fetch(fileUrl.toString(), {
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                    'If-Modified-Since': '0'
+                },
+                cache: 'no-store'
+            });
             
             if (!response.ok) {
                 const errorMessage = `获取文件失败: HTTP ${response.status} - ${response.statusText}`;
@@ -29,7 +40,6 @@ export async function GET(request: Request) {
             }
 
             const buffer = await response.arrayBuffer();
-            console.log('文件获取成功，开始转换');
 
             // 使用mammoth将docx转换为html
             const result = await mammoth.convertToHtml(
@@ -42,12 +52,7 @@ export async function GET(request: Request) {
                         "p[style-name='List Paragraph'] => p.list-paragraph:fresh",
                         "table => table.doc-table",
                         "r[style-name='Strong'] => strong:fresh",
-                        "r[style-name='Emphasis'] => em:fresh",
-                        "r[color] => span.color-{color}:fresh",
-                        "p[color] => p.color-{color}:fresh",
-                        "table[style-name] => table.{style-name}:fresh",
-                        "tr[style-name] => tr.{style-name}:fresh",
-                        "td[style-name] => td.{style-name}:fresh"
+                        "r[style-name='Emphasis'] => em:fresh"
                     ],
                     includeDefaultStyleMap: true,
                     ignoreEmptyParagraphs: true
@@ -92,13 +97,17 @@ export async function GET(request: Request) {
                 </style>
                 <div class="doc-preview">${result.value}</div>
             `;
-            console.log('文件转换完成');
-
             if (result.messages.length > 0) {
                 console.warn('转换过程中的警告:', result.messages);
             }
 
-            return NextResponse.json({ html: styledHtml });
+            return NextResponse.json({ html: styledHtml }, {
+                headers: {
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
         } catch (fetchError) {
             console.error('获取或转换文件失败:', fetchError);
             const errorMessage = fetchError instanceof Error ? fetchError.message : '获取或转换文件失败';

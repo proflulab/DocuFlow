@@ -19,22 +19,18 @@ export async function POST(request: Request): Promise<NextResponse> {
         const fileName = path.split('/').pop();
         const fileNameWithoutSuffix = fileName?.replace(/-\w+\.docx$/, '.docx'); // 移除动态部分
         const relativePath = `templates/${fileNameWithoutSuffix}`;
-        console.log('relativePath:', relativePath); // 调试日志
 
         try {
             // 获取当前文件列表
             const { blobs } = await list({ token });
-            console.log('list 返回的文件路径:', blobs.map(blob => blob.pathname)); // 调试日志
 
             // 匹配文件路径
             const existingFile = blobs.find(blob => blob.pathname === relativePath);
-            console.log('existingFile:', existingFile); // 调试日志
 
             // 如果找到现有文件，先删除
             if (existingFile) {
                 try {
                     await del(existingFile.url, { token }); // 使用 existingFile.url
-                    console.log('成功删除原文件:', existingFile.url);
                 } catch (delError) {
                     console.error('删除原文件失败:', delError);
                     return new NextResponse(JSON.stringify({ error: '删除原文件失败' }), {
@@ -59,7 +55,18 @@ export async function POST(request: Request): Promise<NextResponse> {
                 addRandomSuffix: false, // 禁用随机后缀
             });
 
-            return new NextResponse(JSON.stringify({ message: '保存成功', url: newUrl }), {
+            // 添加短暂延迟以确保文件完全写入
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 重新获取文件列表以确保数据最新
+            const { blobs: updatedBlobs } = await list({ token });
+            const updatedFile = updatedBlobs.find(blob => blob.pathname === relativePath);
+            
+            return new NextResponse(JSON.stringify({ 
+                message: '保存成功', 
+                url: newUrl,
+                updatedFile: updatedFile
+            }), {
                 status: 200,
                 headers: { 'Content-Type': 'application/json' },
             });
