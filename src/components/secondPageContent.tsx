@@ -71,6 +71,7 @@ export default function SecondPageContent() {
         if (name === 'searchId') {
             setSearchId(value);
             setIsValidId(false); // 输入新ID时重置验证状态
+            setIdExists(null); // 重置ID存在状态
         } else {
             setFormData(prevData => ({
                 ...prevData,
@@ -82,6 +83,10 @@ export default function SecondPageContent() {
     const formatDate = (dateString: string) => {
         const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: '2-digit' };
         return new Date(dateString).toLocaleDateString('en-US', options);
+    };
+
+    const handleBack = () => {
+        router.push('/');
     };
 
     const generateDocument = async () => {
