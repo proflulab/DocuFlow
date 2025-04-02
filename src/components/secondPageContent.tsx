@@ -251,16 +251,16 @@ export default function SecondPageContent() {
                             width: "100%"
                         }}
                     />
-                    {searchResult && (
+                    {(searchResult || idExists !== null) && (
                         <div style={{
                             position: "absolute",
                             top: "100%",
                             left: 0,
                             marginTop: "4px",
                             fontSize: "0.875rem",
-                            color: searchResult.success ? '#4CAF50' : '#f44336'
+                            color: (searchResult?.success || idExists) ? '#4CAF50' : '#f44336'
                         }}>
-                            {searchResult.message}
+                            {searchResult?.message}
                         </div>
                     )}
                 </div>

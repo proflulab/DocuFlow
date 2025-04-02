@@ -4,7 +4,7 @@ export async function POST(request: Request) {
     try {
         const { content } = await request.json();
         // Process document generation with content
-        const documentBuffer = Buffer.from('document content');
+        const documentBuffer = Buffer.from(content || 'default document content');
         return new NextResponse(documentBuffer, {
             headers: {
                 'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
