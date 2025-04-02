@@ -66,33 +66,6 @@ export default function SecondPageContent() {
         tuitionFeeUSD: "",
     });
 
-    const handleIdSearch = async (id: string) => {
-        if (!id.trim()) {
-            setSearchResult({ success: false, message: 'Please enter an ID' });
-            return;
-        }
-        setIsSearching(true);
-        try {
-            const response = await fetch(`/api/cache?id=${encodeURIComponent(id)}`);
-            const data = await response.json();
-            const exists = data.data.items.length > 0;
-            setIdExists(exists);
-            setSearchResult({
-                success: exists,
-                message: exists ? 'ID found in database' : 'ID not found'
-            });
-            if (!exists) {
-                router.push('/form');
-            }
-        } catch (error) {
-            console.error('Error searching ID:', error);
-            setIdExists(null);
-            setSearchResult({ success: false, message: 'Error searching ID' });
-        } finally {
-            setIsSearching(false);
-        }
-    };
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         if (name === 'searchId') {
