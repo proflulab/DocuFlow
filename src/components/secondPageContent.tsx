@@ -204,6 +204,24 @@ export default function SecondPageContent() {
     return (
         <main style={{ display: "flex", flexDirection: "column", alignItems: "center", fontFamily: "Arial, sans-serif", marginTop: "2rem" }}>
             <h1 style={{ fontSize: "2rem", color: "#333", marginBottom: "1rem" }}>Generate Admission Offer Letter - Page 2</h1>
+            <button
+                onClick={handleBack}
+                style={{
+                    position: "absolute",
+                    top: "1rem",
+                    left: "1rem",
+                    padding: "0.5rem 1rem",
+                    backgroundColor: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    color: "#666"
+                }}
+            >
+                ← Back
+            </button>
             
             {/* 删除返回按钮部分 */}
             
