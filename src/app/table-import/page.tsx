@@ -12,34 +12,46 @@ export default function TableImportPage() {
     const handleSearch = async () => {
         setLoading(true);
         setError('');
-        try {
-            const FEISHU_APP_TOKEN = process.env.FEISHU_APP_ID;
-const FEISHU_TABLE_ID = process.env.FEISHU_TABLE_ID;
-const FEISHU_ACCESS_TOKEN = process.env.FEISHU_APP_SECRET;
-const response = await fetch(`https://base-api.larksuite.com/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables/${FEISHU_TABLE_ID}/records`, {
-    method: 'GET',
-    headers: {
-        'Authorization': `Bearer ${FEISHU_ACCESS_TOKEN}`,
-        'Content-Type': 'application/json'
-    }
-});
-if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(`API请求失败: ${errorData.error?.message || '未知错误'}`);
-}
-const data = await response.json();
-if (data.error) {
-    throw new Error(data.error);
-}
-// 在返回数据中查找searchId
-const foundSearchId = data.records?.[0]?.fields?.searchId;
-if (foundSearchId) {
-    setSearchId(foundSearchId);
-    setError('ID搜索成功');
-}
+        setData(null);
+        try {       
+            const response = await fetch('/api/feishu', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API请求失败: ${errorData.error?.message || '未知错误'}`);
+            }
+            const responseData = await response.json();
+            if (responseData.error) {
+                throw new Error(responseData.error);
+            }
+            
+            // 处理搜索逻辑
+            if (searchId.trim()) {
+                // 当有输入searchId时，进行精确匹配
+                const matchingItems = responseData.items?.filter(item => {
+                    const recordId = item.fields?.['记录 ID']?.[0]?.text;
+                    return recordId === searchId.trim();
+                });
+
+                if (!matchingItems?.length) {
+                    throw new Error(`未找到ID为 ${searchId} 的记录`);
+                }
+
+                // 只返回匹配的数据
+                setData({ ...responseData, items: matchingItems });
+            } else {
+                // 没有输入searchId时，显示所有数据
+                setData(responseData);
+            }
+            setError('数据获取成功');
 
         } catch (err: any) {
             setError(`搜索失败: ${err.message}`);
+            setData(null);
         } finally {
             setLoading(false);
         }
@@ -94,7 +106,7 @@ if (foundSearchId) {
                         </button>
                     </div>
                     {loading && <div className="text-center">加载中...</div>}
-                    {error && <div className="text-red-500 text-center">{error}</div>}
+                    {error && <div className={error === '数据获取成功' ? 'text-green-500 text-center' : 'text-red-500 text-center'}>{error}</div>}
                     {data && (
   <div className="p-4 bg-white rounded-lg shadow">
     <pre className="text-sm text-gray-700 whitespace-pre-wrap break-all">
