@@ -3,6 +3,23 @@
 import { saveAs } from "file-saver";
 import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
+// 定义模板文件类型
+interface TemplateFile {
+    name: string;
+    format: string;
+    size: string;
+    path: string;
+    pathname: string;
+}
+
+// 定义表单字段类型
+interface FormField {
+    key: string;
+    label: string;
+    type: string;
+    value: string;
+}
+
 // 定义 formData 的类型
 interface FormDataType {
     issuanceDate: string;
@@ -45,13 +62,134 @@ const countries = [
 
 export default function HomeContent() {
     const router = useRouter();
+    const [templates, setTemplates] = useState<TemplateFile[]>([]);
+    const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+    const [formFields, setFormFields] = useState<FormField[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const isAuthenticated = localStorage.getItem('isAuthenticated');
         if (isAuthenticated !== 'true') {
             router.push('/password');
         }
+        loadTemplates();
     }, [router]);
+    
+    // 加载模板列表
+    const loadTemplates = async () => {
+        try {
+            const response = await fetch('/api/blob-templates');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            setTemplates(data);
+        } catch (error) {
+            console.error('Error loading templates:', error);
+            alert('加载模板列表失败：' + (error instanceof Error ? error.message : '未知错误'));
+        }
+    };
+    
+    // 处理模板选择变化
+    const handleTemplateChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const templatePath = e.target.value;
+        setSelectedTemplate(templatePath);
+        
+        if (!templatePath) {
+            setFormFields([]);
+            setFormData({
+                name: "",
+                country: "China",
+                state: "",
+                city: "",
+                postalCode: "",
+                address: "",
+                studentID: "",
+                programName: "Practical Training Club",
+                issuanceDate: "",
+                startDate: "",
+                endDate: "",
+                tuitionFeeUSD: ""
+            });
+            return;
+        }
+        
+        setIsLoading(true);
+        try {
+            // 获取模板预览内容
+            const response = await fetch(`/api/preview?path=${encodeURIComponent(templatePath)}`);
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || '预览文件失败');
+            }
+            
+            if (!data.html) {
+                throw new Error('预览内容为空');
+            }
+
+            // 解析模板中的占位符 {变量名}，排除CSS样式代码中的花括号
+            // 移除HTML中的style标签内容，避免CSS样式代码干扰占位符识别
+            const htmlWithoutStyles = data.html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+            
+            // 使用更精确的正则表达式，只匹配文本内容中的占位符
+            // 避免匹配HTML标签属性和CSS样式中的花括号
+            const placeholderRegex = /(?<!\w|\.|\-|:|;|\{|\}|\s)\{([^\}]+)\}(?!\w|\.|\-|:|;|\{|\}|\s)/g;
+            const matches = htmlWithoutStyles.matchAll(placeholderRegex);
+            const placeholders = new Set<string>();
+            
+            for (const match of matches) {
+                // 验证占位符是否为有效的变量名
+                const placeholder = match[1].trim();
+                if (placeholder && !placeholder.includes('{') && !placeholder.includes('}')) {
+                    placeholders.add(placeholder);
+                }
+            }
+            
+            // 创建表单字段
+            const fields: FormField[] = Array.from(placeholders).map(placeholder => {
+                return {
+                    key: placeholder,
+                    label: placeholder.replace(/_en$/, '').replace(/_美元$/, ''),
+                    type: placeholder.includes('Date') ? 'date' : 'text',
+                    value: ''
+                };
+            });
+            
+            setFormFields(fields);
+            
+            // 初始化表单数据
+            const initialData: FormDataType = {
+                issuanceDate: "",
+                address: "",
+                city: "",
+                state: "",
+                postalCode: "",
+                country: "",
+                name: "",
+                studentID: "",
+                programName: "Practical Training Club",
+                startDate: "",
+                endDate: "",
+                tuitionFeeUSD: ""
+            };
+            fields.forEach(field => {
+                initialData[field.key as keyof FormDataType] = '';
+            });
+            
+            // 设置国家默认值为中国（如果存在）
+            if (initialData.hasOwnProperty('country')) {
+                initialData.country = 'China';
+            }
+            
+            setFormData(initialData as FormDataType);
+        } catch (error) {
+            console.error('Error loading template preview:', error);
+            alert('加载模板预览失败：' + (error instanceof Error ? error.message : '未知错误'));
+        } finally {
+            setIsLoading(false);
+        }
+    };
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [formData, setFormData] = useState<FormDataType>(() => ({
@@ -87,12 +225,18 @@ export default function HomeContent() {
     };
 
     const generateDocument = async () => {
+        if (!selectedTemplate) {
+            alert('请先选择一个模板');
+            return;
+        }
+        
         setIsGeneratingDocx(true); // 禁用按钮
-        const formattedData = {
+        const formattedData: FormDataType & { templatePath: string } = {
             ...formData,
             issuanceDate: formatDate(formData.issuanceDate),
             startDate: formatDate(formData.startDate),
             endDate: formatDate(formData.endDate),
+            templatePath: selectedTemplate // 添加选中的模板路径
         };
 
         try {
@@ -112,12 +256,18 @@ export default function HomeContent() {
         }
     };
     const generatePdf = async () => {
+        if (!selectedTemplate) {
+            alert('请先选择一个模板');
+            return;
+        }
+        
         setIsGeneratingPdf(true); // 禁用按钮
-        const formattedData = {
+        const formattedData: FormDataType & { templatePath: string } = {
             ...formData,
             issuanceDate: formatDate(formData.issuanceDate),
             startDate: formatDate(formData.startDate),
             endDate: formatDate(formData.endDate),
+            templatePath: selectedTemplate // 添加选中的模板路径
         };
 
         try {
@@ -171,77 +321,110 @@ export default function HomeContent() {
             </button>
             <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-lg p-8">
                 <h1 className="text-3xl font-bold text-gray-900 text-center mb-8">Generate Admission Offer Letter</h1>
-                <form className="space-y-6 bg-white rounded-lg">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {Object.keys(formData).map((key) => (
-                    <div key={key} className="relative">
-                        <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                        </label>
-                        {key === "country" ? (
-                            <select
-                                name={key}
-                                value={formData[key as keyof FormDataType]}
-                                onChange={handleChange}
-                                className="mt-1 block w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                
+                {/* 模板选择 */}
+                <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">选择模板</label>
+                    <select
+                        value={selectedTemplate}
+                        onChange={handleTemplateChange}
+                        className="mt-1 block w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    >
+                        <option value="">-- 请选择模板 --</option>
+                        {templates.map((template, index) => (
+                            <option key={index} value={template.path}>
+                                {template.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                
+                {isLoading ? (
+                    <div className="flex justify-center items-center py-10">
+                        <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                ) : (
+                    <form className="space-y-6 bg-white rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {selectedTemplate ? (
+                    formFields.map((field) => (
+                        <div key={field.key} className="relative">
+                            <label className="block text-sm font-medium text-gray-700 mb-1 capitalize">
+                                {field.label.replace(/([A-Z])/g, ' $1').trim()}
+                            </label>
+                            {field.key === "country" ? (
+                                <select
+                                    name={field.key}
+                                    value={formData[field.key as keyof FormDataType] || ''}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                >
+                                    {countries.map((country) => (
+                                        <option key={country} value={country}>
+                                            {country}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <input
+                                    type={field.type}
+                                    name={field.key}
+                                    value={(formData as unknown as Record<string, string>)[field.key] || ''}
+                                    onChange={handleChange}
+                                    className="mt-1 block w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                />
+                            )}
+                        </div>
+                    ))
+                ) : (
+                    <div className="col-span-2 text-center py-4 text-gray-500">
+                        请先选择一个模板
+                    </div>
+                )}
+                        </div>
+                        <div className="mt-8 flex flex-col space-y-4">
+                            <button
+                                type="button"
+                                onClick={generateDocument}
+                                disabled={isGeneratingDocx || !selectedTemplate}
+                                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isGeneratingDocx || !selectedTemplate ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'}`}
                             >
-                                {countries.map((country) => (
-                                    <option key={country} value={country}>
-                                        {country}
-                                    </option>
-                                ))}
-                            </select>
-                        ) : (
-                            <input
-                                type={key.includes("Date") ? "date" : "text"}
-                                name={key}
-                                value={(formData as unknown as Record<string, string>)[key]}
-                                onChange={handleChange}
-                                className="mt-1 block w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            />
-                        )}
-                    </div>
-                ))}
-                    </div>
-                    <div className="mt-8 flex flex-col space-y-4">
-                        <button
-                            type="button"
-                            onClick={generateDocument}
-                            disabled={isGeneratingDocx}
-                            className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isGeneratingDocx ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'}`}
-                        >
-                            {isGeneratingDocx ? (
-                                <>
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Generating...
-                                </>
-                            ) : (
-                                "docx Document"
-                            )}
-                        </button>
-                        <button
-                            type="button"
-                            onClick={generatePdf}
-                            disabled={isGeneratingPdf}
-                            className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isGeneratingPdf ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'}`}
-                        >
-                            {isGeneratingPdf ? (
-                                <>
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Generating...
-                                </>
-                            ) : (
-                                "PDF Document"
-                            )}
-                        </button>
-                    </div>
-                </form>
+                                {isGeneratingDocx ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Generating...
+                                    </>
+                                ) : (
+                                    "docx Document"
+                                )}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={generatePdf}
+                                disabled={isGeneratingPdf || !selectedTemplate}
+                                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${isGeneratingPdf || !selectedTemplate ? 'bg-gray-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'}`}
+                            >
+                                {isGeneratingPdf ? (
+                                    <>
+                                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Generating...
+                                    </>
+                                ) : (
+                                    "PDF Document"
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                )}
             </div>
         </main>
     );
