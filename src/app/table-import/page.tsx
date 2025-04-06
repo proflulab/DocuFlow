@@ -29,24 +29,37 @@ export default function TableImportPage() {
                 throw new Error(responseData.error);
             }
             
-            // 处理搜索逻辑
+            let found = false;
             if (searchId.trim()) {
-                // 当有输入searchId时，进行精确匹配
-                const matchingItems = responseData.items?.filter(item => {
-                    const recordId = item.fields?.['记录 ID']?.[0]?.text;
-                    return recordId === searchId.trim();
-                });
-
-                if (!matchingItems?.length) {
-                    throw new Error(`未找到ID为 ${searchId} 的记录`);
+                // 检查API返回的数据结构
+                if (!responseData.data || !responseData.data.items || !Array.isArray(responseData.data.items)) {
+                    throw new Error('API返回的数据结构无效');
                 }
-
-                // 只返回匹配的数据
-                setData({ ...responseData, items: matchingItems });
+                
+                // 调试输出
+                console.log('搜索ID:', searchId);
+                console.log('所有记录ID:', 
+                    responseData.data.items.map((item: { fields?: { '记录 ID'?: Array<{ text?: string }> } }) => item.fields?.['记录 ID']?.[0]?.text)
+                );
+            
+                // 标准化比较
+                found = responseData.data.items.some((item: { fields?: { '记录 ID'?: Array<{ text?: string }> } }) => {
+                    const recordId = item.fields?.['记录 ID']?.[0]?.text?.trim().toLowerCase();
+                    const isMatch = recordId === searchId.trim().toLowerCase();
+                    console.log(`比较: ${recordId} === ${searchId.trim().toLowerCase()} -> ${isMatch}`);
+                    return isMatch;
+                });
+            
+                if (!found) {
+                    throw new Error(`未找到ID为 "${searchId}" 的记录。可用ID: ${
+                        responseData.data.items.map((item: { fields?: { '记录 ID'?: Array<{ text?: string }> } }) => item.fields?.['记录 ID']?.[0]?.text).filter(Boolean).join(', ')
+                    }`);
+                }
             } else {
-                // 没有输入searchId时，显示所有数据
-                setData(responseData);
+                found = true; // 允许空搜索
             }
+            
+            setData(responseData);
             setError('数据获取成功');
 
         } catch (err: any) {
