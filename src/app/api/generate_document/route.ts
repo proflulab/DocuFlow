@@ -6,10 +6,33 @@ import fs from "fs";
 
 export async function POST(request: Request): Promise<NextResponse> {
     const data = await request.json(); // 从请求体中获取渲染数据
+    const { templatePath, ...templateData } = data;
+    
+    if (!templatePath) {
+        return NextResponse.json({ error: '未指定模板路径' }, { status: 400 });
+    }
 
-    // 使用 public 文件夹下的路径
-    const filePath = path.join(process.cwd(), "public", "word", "Lulab_invioce.docx");
-    const content = fs.readFileSync(filePath, "binary");
+    let content: string;
+    
+    try {
+        // 判断是本地文件还是Blob存储的文件
+        if (templatePath.startsWith('/word/')) {
+            // 使用 public 文件夹下的路径
+            const filePath = path.join(process.cwd(), "public", templatePath);
+            content = fs.readFileSync(filePath, "binary");
+        } else {
+            // 从Blob存储获取文件
+            const response = await fetch(templatePath);
+            if (!response.ok) {
+                throw new Error(`获取模板文件失败: HTTP ${response.status}`);
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            content = Buffer.from(arrayBuffer).toString('binary');
+        }
+    } catch (error) {
+        console.error('Error loading template:', error);
+        return NextResponse.json({ error: '加载模板文件失败' }, { status: 500 });
+    }
 
     const zip = new PizZip(content);
     const doc = new Docxtemplater(zip, {
@@ -18,20 +41,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
 
     // 渲染模板的变量，使用请求传入的数据
-    doc.render({
-        发放时间_en: data.issuanceDate,        // 发放时间
-        详细地址_en: data.address,              // 详细地址
-        城市_en: data.city,                     // 城市
-        省份_en: data.state,                    // 省份
-        邮编: data.postalCode,                  // 邮编
-        国家_en: data.country,                  // 国家
-        姓名_en: data.name,                     // 姓名
-        学生学号: data.studentID,               // 学生学号
-        项目名称: data.programName,             // 项目名称
-        开始时间_en: data.startDate,            // 开始时间
-        结束时间_en: data.endDate,              // 结束时间
-        实际价格_美元: data.tuitionFeeUSD       // 实际价格（美元）
-    });
+    doc.render(templateData);
 
     // 生成文档为 buffer
     const docBuffer = doc.getZip().generate({
