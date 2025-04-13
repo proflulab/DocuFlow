@@ -32,7 +32,8 @@ export async function GET() {
                 'Content-Type': 'application/json',
             },
         });
-    } catch (_error) {
+    } catch (error) {
+        console.error('Failed to fetch data:', error);
         return new NextResponse(JSON.stringify({ error: 'Failed to fetch data' }), {
             status: 500,
             headers: {

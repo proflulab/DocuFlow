@@ -67,7 +67,6 @@ const countries = [
 
 export default function TableImportPage() {
   const [searchId, setSearchId] = useState('');
-  const [searchResult, setSearchResult] = useState<FeishuRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -107,7 +106,6 @@ export default function TableImportPage() {
   const handleSearch = async () => {
     setLoading(true);
     setError('');
-    setSearchResult(null);
     setShowForm(false);
 
     try {
@@ -181,7 +179,6 @@ export default function TableImportPage() {
       })));
 
       setFormData(newFormData);
-      setSearchResult(foundItem);
       setShowForm(true);
       setError('数据填充成功');
     } catch (err) {
@@ -429,27 +426,6 @@ export default function TableImportPage() {
               </div>
             </form>
           )}
-
-          {/* 调试信息面板 */}
-          <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-            <details>
-              <summary className="font-medium cursor-pointer">调试信息</summary>
-              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="text-sm font-semibold">表单数据:</h4>
-                  <pre className="text-xs p-2 bg-white rounded overflow-auto max-h-40">
-                    {JSON.stringify(formData, null, 2)}
-                  </pre>
-                </div>
-                <div>
-                  <h4 className="text-sm font-semibold">表单字段:</h4>
-                  <pre className="text-xs p-2 bg-white rounded overflow-auto max-h-40">
-                    {JSON.stringify(formFields, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            </details>
-          </div>
         </div>
       </div>
     </main>
