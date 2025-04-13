@@ -17,7 +17,11 @@ export async function GET() {
             }
         );
 
-        const data = await response.json();
+        const json = await response.json();
+    if (!json.data) {
+      return NextResponse.json({ error: 'API返回数据结构无效' }, { status: 500 });
+    }
+    const { data } = json;
 
         return new NextResponse(JSON.stringify(data), {
             status: 200,
