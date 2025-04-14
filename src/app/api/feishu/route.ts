@@ -17,11 +17,7 @@ export async function GET() {
             }
         );
 
-        const json = await response.json();
-    if (!json.data) {
-      return NextResponse.json({ error: 'API返回数据结构无效' }, { status: 500 });
-    }
-    const { data } = json;
+        const data = await response.json();
 
         return new NextResponse(JSON.stringify(data), {
             status: 200,
@@ -32,8 +28,7 @@ export async function GET() {
                 'Content-Type': 'application/json',
             },
         });
-    } catch (error) {
-        console.error('Failed to fetch data:', error);
+    } catch (_error) {
         return new NextResponse(JSON.stringify({ error: 'Failed to fetch data' }), {
             status: 500,
             headers: {

@@ -36,7 +36,7 @@ interface Template {
 }
 
 interface FormField {
-  key: keyof FormDataType;
+  key: string;
   label: string;
   type: string;
   value: string;
@@ -172,8 +172,8 @@ export default function TableImportPage() {
       const uniqueFields = [...new Set(requiredFields)];
 
       setFormFields(uniqueFields.map(field => ({
-        key: field,
-        label: field.replace(/([A-Z])/g, ' $1').trim(),
+        key: field as string,
+        label: (field as string).replace(/([A-Z])/g, ' $1').trim(),
         type: field.includes('Date') ? 'date' : 'text',
         value: newFormData[field] || ''
       })));
