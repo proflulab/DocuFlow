@@ -28,8 +28,9 @@ export async function GET() {
                 'Content-Type': 'application/json',
             },
         });
-    } catch (_error) {
-        return new NextResponse(JSON.stringify({ error: 'Failed to fetch data' }), {
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return new NextResponse(JSON.stringify({ error: `Failed to fetch data: ${errorMessage}` }), {
             status: 500,
             headers: {
                 'Access-Control-Allow-Origin': 'http://localhost:3003',

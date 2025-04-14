@@ -174,7 +174,7 @@ export default function TableImportPage() {
       setFormFields(uniqueFields.map(field => ({
         key: field as string,
         label: (field as string).replace(/([A-Z])/g, ' $1').trim(),
-        type: field.includes('Date') ? 'date' : 'text',
+        type: (field as string).includes('Date') ? 'date' : 'text',
         value: newFormData[field] || ''
       })));
 
