@@ -36,7 +36,7 @@ interface Template {
 }
 
 interface FormField {
-  key: string;
+  key: keyof FormDataType;
   label: string;
   type: string;
   value: string;
