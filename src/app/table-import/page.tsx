@@ -25,12 +25,14 @@ interface FormField {
 interface FormDataType {
   [key: string]: string;
   name: string;
+  phone: string;
+  weChat: string;
+  studentID: string;
   country: string;
   state: string;
   city: string;
   postalCode: string;
   address: string;
-  studentID: string;
   programName: string;
   issuanceDate: string;
   startDate: string;
@@ -45,6 +47,17 @@ interface FeishuFieldValue {
 }
 
 interface FeishuFields {
+  real_name?: string;
+  phone?: string;
+  weChat?: string;
+  UserID?: { text: string; type: string }[];
+  order?: {
+    record_ids: string[];
+    text: string;
+    text_arr: string[];
+    type: string;
+  }[];
+  // 保留原有字段
   '记录 ID'?: FeishuFieldValue[];
   '姓名'?: FeishuFieldValue[];
   '学生学号'?: string;
@@ -62,6 +75,8 @@ interface FeishuFields {
 
 interface FeishuRecord {
   fields: FeishuFields;
+  id?: string;
+  record_id?: string;
 }
 
 const countries = [
@@ -82,6 +97,47 @@ const countryMap: Record<string, string> = {
   '新西兰': 'New Zealand'
 };
 
+// 字段映射配置
+const feishuFieldMappings: Record<string, string> = {
+  // 新API字段映射
+  'lezi': 'lezi',
+  '邮编': 'postalCode',
+  '国家_en': 'country',
+  '详细地址_en': 'address',
+  '姓名_en': 'name',
+  'real_name': 'name',
+  'UserID': 'studentID',
+  'phone': 'phone',
+  'weChat': 'weChat',
+  'country': 'country',
+  'province': 'state',
+  'city': 'city',
+  'address': 'address',
+  'issuance_date': 'issuanceDate',
+  'start_date': 'startDate',
+  'end_date': 'endDate',
+  'tuition_fee': 'tuitionFeeUSD',
+  'program_name': 'programName',
+  
+  // 旧API字段映射
+  '姓名': 'name',
+  '学生学号': 'studentID',
+  'Postal Code': 'postalCode',
+  'country': 'country',
+  '详细地址': 'address',
+  '城市': 'city',
+  '省份': 'state',
+  '签发日期': 'issuanceDate',
+  '开始日期': 'startDate',
+  '结束日期': 'endDate',
+  '学费': 'tuitionFeeUSD',
+  '项目名称': 'programName',
+  '发放时间_en': 'issuanceDate',
+  '开始时间_en': 'startDate',
+  '结束时间_en': 'endDate',
+  '实际价格_美元': 'tuitionFeeUSD'
+};
+
 export default function TableImportPage() {
   const router = useRouter();
   const [searchId, setSearchId] = useState('');
@@ -95,12 +151,14 @@ export default function TableImportPage() {
 
   const [formData, setFormData] = useState<FormDataType>({
     name: "",
+    phone: "",
+    weChat: "",
+    studentID: "",
     country: "China",
     state: "",
     city: "",
     postalCode: "",
     address: "",
-    studentID: "",
     programName: "Practical Training Club",
     issuanceDate: "",
     startDate: "",
@@ -160,9 +218,9 @@ export default function TableImportPage() {
       const fields: FormField[] = Array.from(placeholders).map(placeholder => ({
         key: placeholder,
         label: placeholder
-          .replace(/_en$/, '')  // 移除英文后缀
-          .replace(/_美元$/, '') // 移除货币后缀
-          .replace(/([A-Z])/g, ' $1') // 驼峰转空格
+          .replace(/_en$/, '')
+          .replace(/_美元$/, '')
+          .replace(/([A-Z])/g, ' $1')
           .trim(),
         type: placeholder.includes('Date') ? 'date' : 'text',
         value: formData[placeholder] || ''
@@ -193,75 +251,75 @@ export default function TableImportPage() {
     setError('');
 
     try {
+      if (!searchId.trim()) {
+        throw new Error('请输入记录ID');
+      }
+
       const response = await fetch('/api/feishu');
       if (!response.ok) throw new Error('API请求失败');
       
       const responseData = await response.json();
-      if (!responseData.data?.items) throw new Error('API返回的数据结构无效');
+      
+      if (!responseData.data?.items) {
+        console.log('API返回数据:', responseData);
+        throw new Error('API返回的数据结构无效');
+      }
 
+      // 新的搜索逻辑，支持多种ID匹配方式
       const foundItem = responseData.data.items.find((item: FeishuRecord) => {
-        const recordId = item.fields?.['记录 ID']?.[0]?.text?.trim().toLowerCase();
-        return recordId === searchId.trim().toLowerCase();
+        // 匹配记录ID
+        if (item.record_id?.toLowerCase() === searchId.trim().toLowerCase()) {
+          return true;
+        }
+        
+        // 匹配UserID字段中的ID
+        if (item.fields?.UserID?.[0]?.text?.toLowerCase().includes(searchId.trim().toLowerCase())) {
+          return true;
+        }
+        
+        // 匹配order字段中的ID
+        if (item.fields?.order?.[0]?.text?.toLowerCase().includes(searchId.trim().toLowerCase())) {
+          return true;
+        }
+        
+        return false;
       });
 
-      if (!foundItem) throw new Error(`未找到ID为 "${searchId}" 的记录`);
+      if (!foundItem) {
+        console.log('所有记录ID:', responseData.data.items.map((item: FeishuRecord) => 
+          item.record_id || item.fields?.UserID?.[0]?.text
+        ));
+        throw new Error(`未找到ID为 "${searchId}" 的记录，请确认ID是否正确`);
+      }
 
-      console.log('飞书记录数据:', foundItem.fields);
-
-      // 根据模板占位符和飞书字段的完整映射表
-      const fieldMappings: Record<string, string> = {
-        // 飞书字段 -> 模板占位符
-        '姓名': 'name',
-        '学生学号': 'studentID',
-        'country': 'country',
-        'Postal Code': 'postalCode',
-        '详细地址': 'address',
-        '城市': 'city',
-        '省份': 'state',
-        '签发日期': 'issuanceDate',
-        '开始日期': 'startDate',
-        '结束日期': 'endDate',
-        '学费': 'tuitionFeeUSD',
-        '项目名称': 'programName',
-        
-        // 处理模板中的特殊占位符
-        '姓名_en': 'name',
-        '国家_en': 'country',
-        '详细地址_en': 'address',
-        '发放时间_en': 'issuanceDate',
-        '开始时间_en': 'startDate',
-        '结束时间_en': 'endDate',
-        '实际价格_美元': 'tuitionFeeUSD'
-      };
+      console.log('找到的记录:', foundItem);
 
       const newFormData = { ...formData };
 
-      // 处理飞书字段值
-      const processFieldValue = (value: unknown): string => {
-        if (Array.isArray(value)) {
-          return (value[0]?.text || value[0]?.name || '').toString();
-        }
-        return (value || '').toString();
-      };
+      // 处理新API数据结构
+      if (foundItem.fields) {
+        // 使用字段映射配置初始化表单数据
+        Object.entries(feishuFieldMappings).forEach(([feishuField, formField]) => {
+          const sourceKey = foundItem.fields[feishuField] !== undefined ? feishuField : formField;
+          const sourceValue = foundItem.fields[sourceKey];
+          
+          if (typeof sourceValue === 'string' && sourceValue.trim()) {
+            newFormData[formField] = sourceValue.trim();
+          } else if (Array.isArray(sourceValue) && sourceValue[0]?.text) {
+            newFormData[formField] = sourceValue[0].text;
+          }
+        });
 
-      // 填充表单数据 - 先处理飞书原始字段
-      Object.entries(foundItem.fields).forEach(([fieldName, fieldValue]) => {
-        const mappedField = fieldMappings[fieldName];
-        if (mappedField && newFormData.hasOwnProperty(mappedField)) {
-          newFormData[mappedField] = processFieldValue(fieldValue);
-          console.log(`填充字段 ${fieldName} -> ${mappedField}: ${newFormData[mappedField]}`);
+        // 特殊处理国家映射
+        if (newFormData.country) {
+          newFormData.country = countryMap[newFormData.country] || newFormData.country;
         }
-      });
-
-      // 特殊处理国家映射
-      if (newFormData.country) {
-        newFormData.country = countryMap[newFormData.country] || newFormData.country;
       }
 
       // 确保所有模板字段都有值
       formFields.forEach(field => {
-        if (!newFormData[field.key] && fieldMappings[field.key]) {
-          newFormData[field.key] = newFormData[fieldMappings[field.key]] || '';
+        if (!newFormData[field.key] && feishuFieldMappings[field.key]) {
+          newFormData[field.key] = newFormData[feishuFieldMappings[field.key]] || '';
         }
       });
 
@@ -411,7 +469,7 @@ export default function TableImportPage() {
           <div className="flex items-center space-x-2 mb-4">
             <input
               type="text"
-              placeholder="输入记录ID进行搜索（可选）"
+              placeholder="输入记录ID、UserID或手机号搜索"
               className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               value={searchId}
               onChange={(e) => setSearchId(e.target.value)}
@@ -428,9 +486,21 @@ export default function TableImportPage() {
           
           {error && (
             <div className={`p-3 rounded-md mb-4 ${
-              error.includes('成功') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              error.includes('成功') ? 'bg-green-100 text-green-800' : 
+              error.includes('确认') ? 'bg-yellow-100 text-yellow-800' : 
+              'bg-red-100 text-red-800'
             }`}>
               {error}
+              {error.includes('未找到') && (
+                <div className="mt-2 text-sm">
+                  请检查：
+                  <ul className="list-disc pl-5">
+                    <li>记录ID是否正确</li>
+                    <li>该记录是否存在于飞书多维表格中</li>
+                    <li>您是否有权限访问该记录</li>
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
@@ -529,6 +599,13 @@ export default function TableImportPage() {
                 </div>
               </form>
             )
+          )}
+
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-4 bg-gray-100 rounded-lg text-xs">
+              <h3 className="font-bold mb-2">调试信息:</h3>
+              <pre>{JSON.stringify(formData, null, 2)}</pre>
+            </div>
           )}
         </div>
       </div>
