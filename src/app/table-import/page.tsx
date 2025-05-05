@@ -123,7 +123,7 @@ const feishuFieldMappings: Record<string, string> = {
   '姓名': 'name',
   '学生学号': 'studentID',
   'Postal Code': 'postalCode',
-  'country': 'country',
+  'Country': 'country',
   '详细地址': 'address',
   '城市': 'city',
   '省份': 'state',
