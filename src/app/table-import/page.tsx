@@ -87,15 +87,15 @@ const countries = [
 ];
 
 // 国家映射表
-const countryMap: Record<string, string> = {
-  '中国': 'China',
-  '美国': 'United States',
-  '英国': 'United Kingdom',
-  '加拿大': 'Canada',
-  '澳大利亚': 'Australia',
-  '日本': 'Japan',
-  '新西兰': 'New Zealand'
-};
+// const countryMap: Record<string, string> = {
+//   '中国': 'China',
+//   '美国': 'United States',
+//   '英国': 'United Kingdom',
+//   '加拿大': 'Canada',
+//   '澳大利亚': 'Australia',
+//   '日本': 'Japan',
+//   '新西兰': 'New Zealand'
+// };
 
 // 字段映射配置
 // const feishuFieldMappings: Record<string, string> = {
