@@ -98,45 +98,9 @@ const countryMap: Record<string, string> = {
 };
 
 // 字段映射配置
-const feishuFieldMappings: Record<string, string> = {
-  // 新API字段映射
-  'lezi': 'lezi',
-  '邮编': 'postalCode',
-  '国家_en': 'country',
-  '详细地址_en': 'address',
-  '姓名_en': 'name',
-  'real_name': 'name',
-  'UserID': 'studentID',
-  'phone': 'phone',
-  'weChat': 'weChat',
-  'country': 'country',
-  'province': 'state',
-  'city': 'city',
-  'address': 'address',
-  'issuance_date': 'issuanceDate',
-  'start_date': 'startDate',
-  'end_date': 'endDate',
-  'tuition_fee': 'tuitionFeeUSD',
-  'program_name': 'programName',
-  
-  // 旧API字段映射
-  '姓名': 'name',
-  '学生学号': 'studentID',
-  'Postal Code': 'postalCode',
-  'Country': 'country',
-  '详细地址': 'address',
-  '城市': 'city',
-  '省份': 'state',
-  '签发日期': 'issuanceDate',
-  '开始日期': 'startDate',
-  '结束日期': 'endDate',
-  '学费': 'tuitionFeeUSD',
-  '项目名称': 'programName',
-  '发放时间_en': 'issuanceDate',
-  '开始时间_en': 'startDate',
-  '结束时间_en': 'endDate',
-  '实际价格_美元': 'tuitionFeeUSD'
-};
+// const feishuFieldMappings: Record<string, string> = {
+//   ...（全部删除）
+// };
 
 export default function TableImportPage() {
   const router = useRouter();
@@ -271,17 +235,14 @@ export default function TableImportPage() {
         if (item.record_id?.toLowerCase() === searchId.trim().toLowerCase()) {
           return true;
         }
-        
         // 匹配UserID字段中的ID
         if (item.fields?.UserID?.[0]?.text?.toLowerCase().includes(searchId.trim().toLowerCase())) {
           return true;
         }
-        
         // 匹配order字段中的ID
         if (item.fields?.order?.[0]?.text?.toLowerCase().includes(searchId.trim().toLowerCase())) {
           return true;
         }
-        
         return false;
       });
 
@@ -293,37 +254,22 @@ export default function TableImportPage() {
       }
 
       console.log('找到的记录:', foundItem);
-
       const newFormData = { ...formData };
 
-      // 处理新API数据结构
+      // 只根据表单字段和数据源字段名称完全一致时才进行填充
       if (foundItem.fields) {
-        // 使用字段映射配置初始化表单数据
-        Object.entries(feishuFieldMappings).forEach(([feishuField, formField]) => {
-          const sourceKey = foundItem.fields[feishuField] !== undefined ? feishuField : formField;
-          const sourceValue = foundItem.fields[sourceKey];
-          
-          if (typeof sourceValue === 'string' && sourceValue.trim()) {
-            newFormData[formField] = sourceValue.trim();
-          } else if (Array.isArray(sourceValue) && sourceValue[0]?.text) {
-            newFormData[formField] = sourceValue[0].text;
+        formFields.forEach(field => {
+          const value = foundItem.fields[field.key];
+          if (typeof value === 'string' && value.trim()) {
+            newFormData[field.key] = value.trim();
+          } else if (Array.isArray(value) && value[0]?.text) {
+            newFormData[field.key] = value[0].text;
+          } else if (typeof value === 'object' && value !== null && 'text' in value) {
+            newFormData[field.key] = value.text;
           }
         });
-
-        // 特殊处理国家映射
-        if (newFormData.country) {
-          newFormData.country = countryMap[newFormData.country] || newFormData.country;
-        }
       }
 
-      // 确保所有模板字段都有值
-      formFields.forEach(field => {
-        if (!newFormData[field.key] && feishuFieldMappings[field.key]) {
-          newFormData[field.key] = newFormData[feishuFieldMappings[field.key]] || '';
-        }
-      });
-
-      console.log('最终表单数据:', newFormData);
       setFormData(newFormData);
       setError('数据填充成功');
 
