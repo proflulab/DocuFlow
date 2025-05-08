@@ -182,9 +182,9 @@ export default function TableImportPage() {
       const fields: FormField[] = Array.from(placeholders).map(placeholder => ({
         key: placeholder,
         label: placeholder
-          .replace(/_en$/, '')
-          .replace(/_美元$/, '')
-          .replace(/([A-Z])/g, ' $1')
+          // .replace(/_en$/, '')
+          // .replace(/_美元$/, '')
+          // .replace(/([A-Z])/g, ' $1')
           .trim(),
         type: placeholder.includes('Date') ? 'date' : 'text',
         value: formData[placeholder] || ''
