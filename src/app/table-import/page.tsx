@@ -216,56 +216,38 @@ export default function TableImportPage() {
 
     try {
       if (!searchId.trim()) {
-        throw new Error('请输入记录ID');
+        throw new Error('请输入学生学号');
       }
 
-      const response = await fetch('/api/feishu');
-      if (!response.ok) throw new Error('API请求失败');
-      
-      const responseData = await response.json();
-      
-      if (!responseData.data?.items) {
-        console.log('API返回数据:', responseData);
-        throw new Error('API返回的数据结构无效');
+      // 调用API路由查询飞书数据
+      const apiResponse = await fetch(`/api/feishu?student_id=${encodeURIComponent(searchId)}`);
+
+      if (!apiResponse.ok) {
+        const errorData = await apiResponse.json();
+        throw new Error(errorData.error || 'API请求失败');
       }
 
-      // 新的搜索逻辑，支持多种ID匹配方式
-      const foundItem = responseData.data.items.find((item: FeishuRecord) => {
-        // 匹配记录ID
-        if (item.record_id?.toLowerCase() === searchId.trim().toLowerCase()) {
-          return true;
-        }
-        // 匹配UserID字段中的ID
-        if (item.fields?.UserID?.[0]?.text?.toLowerCase().includes(searchId.trim().toLowerCase())) {
-          return true;
-        }
-        // 匹配order字段中的ID
-        if (item.fields?.order?.[0]?.text?.toLowerCase().includes(searchId.trim().toLowerCase())) {
-          return true;
-        }
-        return false;
-      });
+      const responseData = await apiResponse.json();
+      const foundItem = responseData.data.items[0];
 
       if (!foundItem) {
-        console.log('所有记录ID:', responseData.data.items.map((item: FeishuRecord) => 
-          item.record_id || item.fields?.UserID?.[0]?.text
+        console.log('所有学生学号:', responseData.data.items.map((item: any) =>
+          item.fields?.['学生学号']
         ));
-        throw new Error(`未找到ID为 "${searchId}" 的记录，请确认ID是否正确`);
+        throw new Error(`未找到学号为 "${searchId}" 的记录，请确认学号是否正确`);
       }
 
       console.log('找到的记录:', foundItem);
       const newFormData = { ...formData };
 
-      // 只根据表单字段和数据源字段名称完全一致时才进行填充
+      // 根据飞书SDK返回的数据结构填充表单
       if (foundItem.fields) {
-        formFields.forEach(field => {
-          const value = foundItem.fields[field.key];
-          if (typeof value === 'string' && value.trim()) {
-            newFormData[field.key] = value.trim();
-          } else if (Array.isArray(value) && value[0]?.text) {
-            newFormData[field.key] = value[0].text;
-          } else if (typeof value === 'object' && value !== null && 'text' in value) {
-            newFormData[field.key] = value.text;
+        Object.keys(foundItem.fields).forEach(key => {
+          const value = foundItem.fields[key];
+          if (value && typeof value === 'object' && value[0]?.text) {
+            newFormData[key] = value[0].text.trim();
+          } else if (value !== undefined && value !== null) {
+            newFormData[key] = value.toString().trim();
           }
         });
       }
@@ -281,9 +263,25 @@ export default function TableImportPage() {
       }
 
     } catch (err) {
-      const error = err instanceof Error ? err : new Error('未知错误');
+      let error = err instanceof Error ? err : new Error('未知错误');
+      
+      // 处理JSON解析错误
+      if (error.message.includes('Unexpected end of JSON input') || error.message.includes('JSON')) {
+        error = new Error('服务器返回了无效的JSON数据');
+      }
+      
       console.error('搜索错误:', error);
       setError(`搜索失败: ${error.message}`);
+      
+      // 记录完整的错误对象以便调试
+      console.error('完整错误对象:', {
+        message: err instanceof Error ? err.message : '未知错误',
+        stack: err instanceof Error ? err.stack : '无堆栈信息',
+        requestParams: {
+          searchId: searchId,
+          apiUrl: `/api/feishu?student_id=${searchId}`
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -415,7 +413,7 @@ export default function TableImportPage() {
           <div className="flex items-center space-x-2 mb-4">
             <input
               type="text"
-              placeholder="输入记录ID、UserID或手机号搜索"
+              placeholder="输入学生学号搜索"
               className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               value={searchId}
               onChange={(e) => setSearchId(e.target.value)}
@@ -441,8 +439,8 @@ export default function TableImportPage() {
                 <div className="mt-2 text-sm">
                   请检查：
                   <ul className="list-disc pl-5">
-                    <li>记录ID是否正确</li>
-                    <li>该记录是否存在于飞书多维表格中</li>
+                    <li>学生学号是否正确</li>
+                    <li>该学生记录是否存在于飞书多维表格中</li>
                     <li>您是否有权限访问该记录</li>
                   </ul>
                 </div>

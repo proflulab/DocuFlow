@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.47.0",
     "@tinymce/tinymce-react": "^6.0.0",
     "@types/file-saver": "^2.0.7",
     "@vercel/blob": "^0.27.3",
