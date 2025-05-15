@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-const lark = require('@larksuiteoapi/node-sdk');
+import lark from '@larksuiteoapi/node-sdk';
 
 export async function GET(request: Request) {
   
@@ -89,7 +89,31 @@ export async function GET(request: Request) {
 
         console.log('请求参数:', JSON.stringify(params, null, 2));
         const data = await client.bitable.v1.appTableRecord.search(
-            params,
+            {
+                path: {
+                    app_token: FEISHU_APP_TOKEN || '',
+                    table_id: FEISHU_TABLE_ID || ''
+                },
+                data: {
+                    view_id: FEISHU_VIEW_ID || '',
+                    field_names: [FEISHU_FIELD_NAME1 || '', FEISHU_FIELD_NAME2 || '', FEISHU_FIELD_NAME3 || '', FEISHU_FIELD_NAME4 || '', FEISHU_FIELD_NAME5 || ''],
+                    sort: [{
+                        field_name: '学生学号',
+                        desc: true,
+                    }],
+                    filter: {
+                        conjunction: 'and' as const,
+                        conditions: [
+                            {
+                                field_name: FEISHU_FIELD_NAME1 || '',
+                                operator: 'is',
+                                value: [studentId]
+                            }
+                        ]
+                    },
+                    automatic_fields: false
+                }
+            },
             lark.withTenantToken("")
         );
         console.log('飞书返回数据:', JSON.stringify(data, null, 2));

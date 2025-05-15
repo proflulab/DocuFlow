@@ -73,11 +73,7 @@ interface FeishuFields {
   [key: string]: unknown;
 }
 
-interface FeishuRecord {
-  fields: FeishuFields;
-  id?: string;
-  record_id?: string;
-}
+
 
 const countries = [
   "China", "United States", "United Kingdom", "Canada", "Australia", "Japan",
@@ -231,7 +227,7 @@ export default function TableImportPage() {
       const foundItem = responseData.data.items[0];
 
       if (!foundItem) {
-        console.log('所有学生学号:', responseData.data.items.map((item: any) =>
+        console.log('所有学生学号:', responseData.data.items.map((item: { fields: FeishuFields }) =>
           item.fields?.['学生学号']
         ));
         throw new Error(`未找到学号为 "${searchId}" 的记录，请确认学号是否正确`);
