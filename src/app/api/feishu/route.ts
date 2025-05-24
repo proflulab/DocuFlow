@@ -9,10 +9,6 @@ export async function GET(request: Request) {
     const FEISHU_TABLE_ID = process.env.FEISHU_TABLE_ID;
     const FEISHU_VIEW_ID = process.env.FEISHU_VIEW_ID;
     const FEISHU_FIELD_NAME1 = process.env.FEISHU_FIELD_NAME1;
-    const FEISHU_FIELD_NAME2 = process.env.FEISHU_FIELD_NAME2;
-    const FEISHU_FIELD_NAME3 = process.env.FEISHU_FIELD_NAME3;
-
-    const FEISHU_FIELD_NAME5 = process.env.FEISHU_FIELD_NAME5;
 
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('student_id');
