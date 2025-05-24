@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import lark from '@larksuiteoapi/node-sdk';
+import { Client, withTenantToken } from '@larksuiteoapi/node-sdk';
 
 export async function GET(request: Request) {
   
@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const FEISHU_FIELD_NAME1 = process.env.FEISHU_FIELD_NAME1;
     const FEISHU_FIELD_NAME2 = process.env.FEISHU_FIELD_NAME2;
     const FEISHU_FIELD_NAME3 = process.env.FEISHU_FIELD_NAME3;
-    const FEISHU_FIELD_NAME4 = process.env.FEISHU_FIELD_NAME4;
+
     const FEISHU_FIELD_NAME5 = process.env.FEISHU_FIELD_NAME5;
 
     const { searchParams } = new URL(request.url);
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const withSharedUrl = searchParams.get('with_shared_url') === 'false';
     const automaticFields = searchParams.get('automatic_fields') === 'false';
 
-    const client = new lark.Client({
+    const client = new Client({
         appId: FEISHU_APP_ID || '',
         appSecret: FEISHU_APP_SECRET || '',
         disableTokenCache: false
@@ -68,7 +68,7 @@ export async function GET(request: Request) {
             // },
             data: {
                 view_id: FEISHU_VIEW_ID || '',
-                field_names: [FEISHU_FIELD_NAME1 || '', FEISHU_FIELD_NAME2 || '', FEISHU_FIELD_NAME3 || '', FEISHU_FIELD_NAME4 || '', FEISHU_FIELD_NAME5 || '', ],
+                // field_names: [FEISHU_FIELD_NAME1 || '', FEISHU_FIELD_NAME2 || '', FEISHU_FIELD_NAME3 || '', FEISHU_FIELD_NAME5 || '', ],
                 sort: [ {
                     field_name:'学生学号',
                     desc:true,
@@ -96,7 +96,7 @@ export async function GET(request: Request) {
                 },
                 data: {
                     view_id: FEISHU_VIEW_ID || '',
-                    field_names: [FEISHU_FIELD_NAME1 || '', FEISHU_FIELD_NAME2 || '', FEISHU_FIELD_NAME3 || '', FEISHU_FIELD_NAME4 || '', FEISHU_FIELD_NAME5 || ''],
+                    // field_names: [FEISHU_FIELD_NAME1 || '', FEISHU_FIELD_NAME2 || '', FEISHU_FIELD_NAME3 || '', FEISHU_FIELD_NAME5 || ''],
                     sort: [{
                         field_name: '学生学号',
                         desc: true,
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
                     automatic_fields: false
                 }
             },
-            lark.withTenantToken("")
+            withTenantToken("")
         );
         console.log('飞书返回数据:', JSON.stringify(data, null, 2));
         if (!data) {
