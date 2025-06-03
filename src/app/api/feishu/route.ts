@@ -6,7 +6,6 @@ export async function GET(request: Request) {
   const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET;
   const FEISHU_APP_TOKEN = process.env.FEISHU_APP_TOKEN;
   const FEISHU_TABLE_ID = process.env.FEISHU_TABLE_ID;
-  const FEISHU_VIEW_ID = process.env.FEISHU_VIEW_ID;
   const FEISHU_FIELD_NAME1 = process.env.FEISHU_FIELD_NAME1;
 
   const { searchParams } = new URL(request.url);
