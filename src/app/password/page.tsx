@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2024-11-06 18:25:07
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2024-11-06 18:25:13
+ * @LastEditTime: 2025-08-16 03:34:19
  * @FilePath: /next_word_auto/src/app/password/page.tsx
  * @Description: 
  * 
@@ -26,7 +26,9 @@ export default function PasswordPage() {
     const handlePasswordSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (password === correctPassword) {
-            localStorage.setItem("isAuthenticated", "true");
+            // 设置cookie，这样中间件可以读取
+            document.cookie = "isAuthenticated=true; path=/; max-age=86400"; // 24小时有效
+            localStorage.setItem("isAuthenticated", "true"); // 保持localStorage以兼容其他可能的客户端检查
             router.push("/"); // 跳转到主页
         } else {
             setError("Incorrect password. Please try again.");
