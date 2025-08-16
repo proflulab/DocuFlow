@@ -34,7 +34,7 @@ async function getTemplateFields(templateSource: 'local' | 'cloud' = 'local', te
     const zip = new PizZip(content);
 
     // 只解析，不渲染
-    const doc = new Docxtemplater(zip, {
+    new Docxtemplater(zip, {
         paragraphLoop: true,
         linebreaks: true,
         modules: [iModule],        // 挂载模块

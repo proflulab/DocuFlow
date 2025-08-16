@@ -8,7 +8,7 @@ import FormData from "form-data";
 import { getTemplateFromBlob } from "@/utils/blob";
 
 // 动态文档数据类型
-type DocumentData = Record<string, any>;
+type DocumentData = Record<string, string | number | boolean | Date>;
 
 
 
@@ -85,7 +85,7 @@ export async function POST(request: Request): Promise<NextResponse> {
                 // 转换为PDF
                 const pdfBuffer = await convertDocxToPdf(docBuffer);
 
-                return new NextResponse(pdfBuffer, {
+                return new NextResponse(new Uint8Array(pdfBuffer), {
                     headers: {
                         "Content-Type": "application/pdf",
                         "Content-Disposition": 'attachment; filename="Lulab_invioce_converted.pdf"',
@@ -100,7 +100,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             }
         } else {
             // 返回DOCX格式
-            return new NextResponse(docBuffer, {
+            return new NextResponse(new Uint8Array(docBuffer), {
                 headers: {
                     "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                     "Content-Disposition": 'attachment; filename="offer_letter.docx"',

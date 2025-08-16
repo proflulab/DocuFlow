@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button, Card, Space, Typography, message, Popconfirm, DatePicker, Select, Input, InputNumber, Checkbox } from 'antd';
 import { PlusOutlined, DeleteOutlined, DownloadOutlined, FilePdfOutlined, CloudOutlined, SettingOutlined } from '@ant-design/icons';
 import { saveAs } from 'file-saver';
 import dayjs from 'dayjs';
 import { z } from 'zod';
-import { COUNTRIES, POPULAR_COUNTRIES } from '../constants/countries';
+import { COUNTRIES } from '../constants/countries';
 
 const { Title } = Typography;
 
@@ -50,7 +50,7 @@ interface FieldConfig {
     name: string;
     label: string;
     type: 'text' | 'email' | 'number' | 'phone' | 'currency' | 'date' | 'select' | 'country';
-    value: any;
+    value: string | number | boolean;
     options?: string[]; // 用于select类型
     required?: boolean;
 }
@@ -87,6 +87,7 @@ export default function CertificateGenerator() {
     const [fields, setFields] = useState<FieldConfig[]>(DEFAULT_FIELDS);
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [templateSource] = useState<'cloud'>('cloud');
     const [cloudTemplateName, setCloudTemplateName] = useState<string>('');
@@ -94,7 +95,7 @@ export default function CertificateGenerator() {
     const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
     // 获取云端模板列表
-    const fetchCloudTemplates = async () => {
+    const fetchCloudTemplates = useCallback(async () => {
         setIsLoadingTemplates(true);
         try {
             const response = await fetch('/api/templates');
@@ -117,12 +118,12 @@ export default function CertificateGenerator() {
         } finally {
             setIsLoadingTemplates(false);
         }
-    };
+    }, [cloudTemplateName]);
 
     // 组件初始化时获取云端模板列表
     React.useEffect(() => {
         fetchCloudTemplates();
-    }, []);
+    }, [fetchCloudTemplates]);
 
     // 添加新字段
     const addField = () => {
@@ -280,7 +281,7 @@ export default function CertificateGenerator() {
     const validateFormData = () => {
         try {
             const schema = createFormSchema(fields);
-            const data: Record<string, any> = {};
+            const data: Record<string, string | number | boolean> = {};
             fields.forEach(field => {
                 data[field.name] = formData[field.name] || field.value || '';
             });
@@ -496,7 +497,7 @@ export default function CertificateGenerator() {
                                     <div className="text-center py-8 text-gray-400">
                                         <div className="text-lg mb-2">📝</div>
                                         <div>暂无字段配置</div>
-                                        <div className="text-xs mt-1">点击下方"添加字段"按钮开始配置</div>
+                                        <div className="text-xs mt-1">点击下方&quot;添加字段&quot;按钮开始配置</div>
                                     </div>
                                 ) : (
                                     fields.map((field, index) => (
