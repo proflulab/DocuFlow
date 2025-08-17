@@ -2,12 +2,13 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-16 03:15:19
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-08-16 14:39:21
+ * @LastEditTime: 2025-08-16 23:54:16
  * @FilePath: /next_word_auto/src/components/HomePage.tsx
  * @Description: 
  * 
  * Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
  */
+
 'use client';
 
 import React from 'react';
@@ -38,10 +39,12 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, href, ico
         </div>
 
         {/* 悬浮时的箭头指示器 */}
-        <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
+        <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:translate-x-1">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-2.5 shadow-lg group-hover:shadow-xl transition-all duration-300 backdrop-blur-sm">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </div>
         </div>
       </div>
     </Link>
@@ -114,8 +117,6 @@ export default function HomePage() {
             gradient="bg-gradient-to-br from-green-500 to-green-600"
           />
         </div>
-
-
       </main>
     </div>
   );

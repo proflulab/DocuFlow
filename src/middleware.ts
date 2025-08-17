@@ -16,6 +16,14 @@ export function middleware(request: NextRequest) {
   // 获取当前路径
   const { pathname } = request.nextUrl
 
+  // 检查是否配置了密码环境变量
+  const password = process.env.NEXT_PUBLIC_PASSWORD
+
+  // 如果没有配置密码环境变量，直接通过所有请求
+  if (!password) {
+    return NextResponse.next()
+  }
+
   // 不需要验证的路径
   const publicPaths = ['/', '/password']
 

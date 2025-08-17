@@ -21,7 +21,7 @@ export default function PasswordPage() {
     const [error, setError] = useState("");
     const router = useRouter();
 
-    const correctPassword = "lulab"; // 设定正确的密码
+    const correctPassword = process.env.NEXT_PUBLIC_PASSWORD; // 从环境变量获取密码
 
     const handlePasswordSubmit = (e: React.FormEvent) => {
         e.preventDefault();
