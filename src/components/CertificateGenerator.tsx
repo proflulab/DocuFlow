@@ -87,7 +87,7 @@ export default function CertificateGenerator() {
     const [fields, setFields] = useState<FieldConfig[]>(DEFAULT_FIELDS);
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-    const [formData, setFormData] = useState<Record<string, any>>({});
+    const [formData, setFormData] = useState<Record<string, string | number | boolean | null | undefined>>({});
     const [templateSource] = useState<'cloud'>('cloud');
     const [cloudTemplateName, setCloudTemplateName] = useState<string>('');
     const [cloudTemplates, setCloudTemplates] = useState<CloudTemplate[]>([]);
@@ -214,14 +214,15 @@ export default function CertificateGenerator() {
     // 渲染字段值输入组件
     const renderFieldValueInput = (field: FieldConfig) => {
         const isRequired = field.required;
-        const hasValue = formData[field.name] && formData[field.name].toString().trim() !== '';
+        const fieldValue = formData[field.name];
+        const hasValue = fieldValue != null && fieldValue.toString().trim() !== '';
 
         switch (field.type) {
             case 'text':
             case 'phone':
                 return (
                     <Input
-                        value={formData[field.name] || ''}
+                        value={(formData[field.name] as string) || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
                         placeholder={`输入${field.label}`}
                         size="small"
@@ -232,7 +233,7 @@ export default function CertificateGenerator() {
                 return (
                     <Input
                         type="email"
-                        value={formData[field.name] || ''}
+                        value={(formData[field.name] as string) || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
                         placeholder={`输入${field.label}`}
                         size="small"
@@ -242,7 +243,7 @@ export default function CertificateGenerator() {
             case 'number':
                 return (
                     <InputNumber
-                        value={formData[field.name] || undefined}
+                        value={(formData[field.name] as number) || undefined}
                         onChange={(value) => setFormData(prev => ({ ...prev, [field.name]: value }))}
                         placeholder={`输入${field.label}`}
                         size="small"
@@ -253,7 +254,7 @@ export default function CertificateGenerator() {
             case 'currency':
                 return (
                     <InputNumber
-                        value={formData[field.name] || undefined}
+                        value={(formData[field.name] as number) || undefined}
                         onChange={(value) => setFormData(prev => ({ ...prev, [field.name]: value }))}
                         placeholder={`输入${field.label}`}
                         size="small"
@@ -267,8 +268,8 @@ export default function CertificateGenerator() {
             case 'date':
                 return (
                     <DatePicker
-                        value={formData[field.name] ? dayjs(formData[field.name]) : null}
-                        onChange={(date, dateString) => setFormData(prev => ({ ...prev, [field.name]: dateString }))}
+                        value={formData[field.name] ? dayjs(formData[field.name] as string) : null}
+                        onChange={(date, dateString) => setFormData(prev => ({ ...prev, [field.name]: dateString as string }))}
                         className="w-full"
                         placeholder={`选择${field.label}`}
                         size="small"
@@ -278,7 +279,7 @@ export default function CertificateGenerator() {
             case 'country':
                 return (
                     <Select
-                        value={formData[field.name] || undefined}
+                        value={(formData[field.name] as string) || undefined}
                         onChange={(value) => setFormData(prev => ({ ...prev, [field.name]: value }))}
                         placeholder={`请选择${field.label}`}
                         className="w-full"
@@ -295,7 +296,7 @@ export default function CertificateGenerator() {
             default:
                 return (
                     <Input
-                        value={formData[field.name] || ''}
+                        value={(formData[field.name] as string) || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
                         placeholder={`输入${field.label}`}
                         size="small"
