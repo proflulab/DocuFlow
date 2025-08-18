@@ -9,13 +9,17 @@
 ### 导出的常量
 
 #### `COUNTRIES`
+
 完整的世界各国列表，包含约200个国家和地区，按以下格式组织：
+
 ```typescript
 { value: 'country_code', label: '国家名称' }
 ```
 
 #### `COUNTRIES_BY_REGION`
+
 按地区分组的国家列表：
+
 - `asia` - 亚洲国家
 - `europe` - 欧洲国家
 - `north_america` - 北美洲国家
@@ -24,6 +28,7 @@
 - `africa` - 非洲国家
 
 #### `POPULAR_COUNTRIES`
+
 常用的10个国家列表（原CertificateGenerator中的国家）
 
 ### 使用示例
