@@ -21,11 +21,13 @@
 ### 使用方法
 
 #### 使用本地模板
+
 1. 选择「使用本地模板文件」选项
 2. 配置字段信息
 3. 点击生成文档
 
 #### 使用云端模板
+
 1. 选择「使用云端模板 (Vercel Blob)」选项
 2. 在「云端模板名称」输入框中输入模板文件名（如：`template.docx`）
 3. 配置字段信息
@@ -34,6 +36,7 @@
 ### 云端模板管理
 
 #### 上传模板到 Vercel Blob
+
 模板文件需要预先上传到 Vercel Blob 存储中。可以通过以下方式上传：
 
 1. 使用 Vercel Dashboard
@@ -41,6 +44,7 @@
 3. 通过 API 程序化上传
 
 #### 模板文件要求
+
 - 支持 `.docx` 格式的 Word 模板文件
 - 模板中使用 `{{字段名}}` 格式的占位符
 - 确保模板文件已正确上传到 Vercel Blob
@@ -58,6 +62,7 @@ fetch('/api/document?format=docx&source=cloud&template=template.docx', { ... })
 ```
 
 **参数说明：**
+
 - `source`: 明确指定模板来源（`local` 或 `cloud`）
 - `template`: 仅在使用云端模板时需要，指定模板文件名
 
@@ -120,6 +125,7 @@ if (templateSource === 'cloud' && cloudTemplateName.trim()) {
 ```
 
 **改进点：**
+
 - 明确的 `source` 参数避免了基于 `template` 参数存在性的隐式判断
 - 提高了 API 的可读性和可维护性
 - 确保了向后兼容性，同时提供了灵活的模板管理能力

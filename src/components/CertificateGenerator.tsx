@@ -87,12 +87,13 @@ export default function CertificateGenerator() {
     const [fields, setFields] = useState<FieldConfig[]>(DEFAULT_FIELDS);
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [formData, setFormData] = useState<Record<string, any>>({});
     const [templateSource] = useState<'cloud'>('cloud');
     const [cloudTemplateName, setCloudTemplateName] = useState<string>('');
     const [cloudTemplates, setCloudTemplates] = useState<CloudTemplate[]>([]);
     const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+    const [isAutoConfiguring, setIsAutoConfiguring] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // 获取云端模板列表
     const fetchCloudTemplates = useCallback(async () => {
@@ -122,7 +123,17 @@ export default function CertificateGenerator() {
 
     // 组件初始化时获取云端模板列表
     React.useEffect(() => {
-        fetchCloudTemplates();
+        const initializeComponent = async () => {
+            try {
+                await fetchCloudTemplates();
+            } catch (error) {
+                console.error('Failed to fetch cloud templates:', error);
+            } finally {
+                setIsInitialized(true);
+            }
+        };
+
+        initializeComponent();
     }, [fetchCloudTemplates]);
 
     // 添加新字段
@@ -157,6 +168,9 @@ export default function CertificateGenerator() {
             return;
         }
 
+        setIsAutoConfiguring(true);
+        const hideLoading = message.loading('正在分析模板字段...', 0);
+
         try {
             const response = await fetch(`/api/template-fields?source=cloud&template=${encodeURIComponent(cloudTemplateName)}`);
             const result = await response.json();
@@ -172,13 +186,27 @@ export default function CertificateGenerator() {
                 }));
 
                 setFields(autoFields);
-                message.success(`已自动配置 ${result.fields.length} 个字段`);
+                hideLoading();
+                message.success({
+                    content: `🎉 成功自动配置 ${result.fields.length} 个字段！`,
+                    duration: 3,
+                });
             } else {
-                message.error(result.message || '获取模板字段失败');
+                hideLoading();
+                message.error({
+                    content: result.message || '❌ 获取模板字段失败，请检查模板格式',
+                    duration: 4,
+                });
             }
         } catch (error) {
             console.error('自动配置字段失败:', error);
-            message.error('自动配置字段失败');
+            hideLoading();
+            message.error({
+                content: '❌ 自动配置字段失败，请检查网络连接后重试',
+                duration: 4,
+            });
+        } finally {
+            setIsAutoConfiguring(false);
         }
     };
 
@@ -383,6 +411,23 @@ export default function CertificateGenerator() {
         }
     };
 
+    // 显示加载状态直到组件完全初始化
+    if (!isInitialized) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
+                <div className="max-w-6xl mx-auto px-4">
+                    <Card>
+                        <Title level={2} className="text-center mb-8">动态文档生成器</Title>
+                        <div className="flex justify-center items-center h-64">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                            <span className="ml-3 text-gray-600">正在加载模板...</span>
+                        </div>
+                    </Card>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
             <div className="max-w-6xl mx-auto px-4">
@@ -398,13 +443,13 @@ export default function CertificateGenerator() {
                                 </label>
                                 <div className="flex items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
                                     <CloudOutlined className="mr-2 text-blue-600" />
-                                    <span className="text-blue-800 font-medium">使用云端模板 (Vercel Blob)</span>
+                                    <span className="text-blue-800 font-medium">Vercel Blob</span>
                                 </div>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    选择云端模板
+                                    选择模板
                                 </label>
                                 <Select
                                     placeholder="请选择云端模板文件"
@@ -450,9 +495,10 @@ export default function CertificateGenerator() {
                                         size="small"
                                         icon={<SettingOutlined />}
                                         onClick={autoConfigureFields}
-                                        disabled={!cloudTemplateName}
+                                        disabled={!cloudTemplateName || isAutoConfiguring}
+                                        loading={isAutoConfiguring}
                                     >
-                                        自动配置
+                                        {isAutoConfiguring ? '配置中...' : '自动配置'}
                                     </Button>
                                     <Popconfirm
                                         title="确定要删除所有字段吗？"
@@ -658,7 +704,7 @@ export default function CertificateGenerator() {
                     </Card>
 
                     {/* 文档生成区域 */}
-                    <Card title="生成文档">
+                    <Card >
                         <div className="text-center">
                             <Space>
                                 <Button
