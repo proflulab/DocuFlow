@@ -14,7 +14,7 @@
  * @param docBuffer DOCX文档的Buffer
  * @returns PNG图片的Buffer
  */
-export async function convertDocxToPng(docBuffer: Buffer): Promise<Buffer> {
+export async function convertDocxToPng(_docBuffer: Buffer): Promise<Buffer> {
     // TODO: 实现DOCX到PNG的转换
     // 可以使用以下库之一:
     // 1. puppeteer - 通过HTML渲染
@@ -30,7 +30,7 @@ export async function convertDocxToPng(docBuffer: Buffer): Promise<Buffer> {
  * @param docBuffer DOCX文档的Buffer
  * @returns JPG图片的Buffer
  */
-export async function convertDocxToJpg(docBuffer: Buffer): Promise<Buffer> {
+export async function convertDocxToJpg(_docBuffer: Buffer): Promise<Buffer> {
     // TODO: 实现DOCX到JPG的转换
     // 实现思路同PNG，最后使用sharp转换格式
 

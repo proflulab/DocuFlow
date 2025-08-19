@@ -5,7 +5,7 @@ import { Button, Card, Space, message } from 'antd';
 import { DownloadOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { saveAs } from 'file-saver';
 import { z } from 'zod';
-import { FieldConfig } from '../types';
+import { FieldConfig, CloudTemplate } from '../types';
 import { createFormSchema } from '../utils/validation';
 
 interface DocumentGeneratorProps {
@@ -61,7 +61,7 @@ export default function DocumentGenerator({
             throw new Error('获取模板列表失败');
         }
 
-        const selectedTemplate = templatesResult.templates.find((t: any) => t.name === templateName.trim());
+        const selectedTemplate = templatesResult.templates.find((t: CloudTemplate) => t.name === templateName.trim());
         if (!selectedTemplate) {
             throw new Error(`模板文件 "${templateName}" 不存在`);
         }

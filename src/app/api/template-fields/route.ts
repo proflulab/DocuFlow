@@ -42,7 +42,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             maxFileSize: 10 * 1024 * 1024, // 10MB
         });
 
-        const [fields, files] = await form.parse(mockRequest as any);
+        const [_fields, files] = await form.parse(mockRequest as unknown as Parameters<typeof form.parse>[0]);
 
         // 获取上传的模板文件
         const templateFile = Array.isArray(files.template) ? files.template[0] : files.template;

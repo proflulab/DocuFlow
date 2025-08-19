@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-18 02:17:07
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-08-19 12:30:47
+ * @LastEditTime: 2025-08-19 19:09:58
  * @FilePath: /next_word_auto/src/app/api/document/route.ts
  * @Description: 
  * 
@@ -54,7 +54,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             maxFileSize: 10 * 1024 * 1024, // 10MB
         });
 
-        const [fields, files] = await form.parse(mockRequest as any);
+        const [fields, files] = await form.parse(mockRequest as unknown as Parameters<typeof form.parse>[0]);
 
         // 获取 format 参数，默认为 docx
         const format = Array.isArray(fields.format) ? fields.format[0] : fields.format || 'docx';
@@ -71,7 +71,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         let data: DocumentData;
         try {
             data = JSON.parse(dataString);
-        } catch (error) {
+        } catch (_error) {
             return new NextResponse(JSON.stringify({ error: "data 参数格式错误，必须是有效的 JSON" }), {
                 status: 400,
                 headers: { "Content-Type": "application/json" },
