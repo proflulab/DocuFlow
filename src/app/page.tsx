@@ -21,7 +21,7 @@ const FEATURES = [
 
 const FEATURE_CARDS = [
   {
-    title: '智能证书生成器',
+    title: '动态文档生成器',
     description: '支持动态字段配置和实时表单验证，智能解析模板占位符，自动生成DOCX和PDF格式文档',
     href: '/certificate',
     icon: '🎓',

@@ -9,7 +9,7 @@
  * Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
  */
 
-import { list } from "@vercel/blob";
+import { list, head } from "@vercel/blob";
 
 /**
  * 从 Vercel Blob 获取模板文件
@@ -41,6 +41,28 @@ export async function getTemplateFromBlob(templateName: string): Promise<Buffer>
         return Buffer.from(arrayBuffer);
     } catch (error) {
         console.error('从 Vercel Blob 获取模板失败:', error);
+        throw error;
+    }
+}
+
+/**
+ * 获取 Blob 对象的元数据
+ * @param urlOrPathname Blob 对象的 URL 或路径名
+ * @param options 可选参数
+ * @returns Blob 对象的元数据
+ */
+export async function getBlobMetadata(
+    urlOrPathname: string,
+    options?: {
+        token?: string;
+        abortSignal?: AbortSignal;
+    }
+) {
+    try {
+        const blobDetails = await head(urlOrPathname, options);
+        return blobDetails;
+    } catch (error) {
+        console.error('获取 Blob 元数据失败:', error);
         throw error;
     }
 }

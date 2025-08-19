@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-17 23:48:01
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-08-18 03:48:36
+ * @LastEditTime: 2025-08-19 15:47:04
  * @FilePath: /next_word_auto/src/components/Navigation.tsx
  * @Description: 
  * 
@@ -25,7 +25,7 @@ const Navigation: React.FC<NavigationProps> = ({ showBreadcrumb = true }) => {
   const getPageTitle = () => {
     switch (pathname) {
       case '/certificate':
-        return '智能证书生成器';
+        return '动态文档生成器';
       case '/templates':
         return '模板管理系统';
       case '/batch':

@@ -1,111 +1,136 @@
-import Docxtemplater from "docxtemplater";
-import PizZip from "pizzip";
+/*
+ * @Author: 杨仕明 shiming.y@qq.com
+ * @Date: 2025-08-18 02:17:07
+ * @LastEditors: 杨仕明 shiming.y@qq.com
+ * @LastEditTime: 2025-08-19 19:09:58
+ * @FilePath: /next_word_auto/src/app/api/document/route.ts
+ * @Description: 
+ * 
+ * Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
+ */
+
 import { NextResponse } from "next/server";
-import path from "path";
+import { convertDocxToPdf } from "@/services/pdfConverter";
+import { convertDocxToImage } from "@/services/imageConverter";
+import { generateDocxBuffer, type DocumentData } from "@/services/docxTemplateService";
+import formidable from "formidable";
+import { Readable } from "stream";
 import fs from "fs";
-import axios from "axios";
-import FormData from "form-data";
-import { getTemplateFromBlob } from "@/utils/blob";
 
-// 动态文档数据类型
-type DocumentData = Record<string, string | number | boolean | Date>;
+// 定义支持的格式类型
+type SupportedFormat = 'docx' | 'pdf' | 'png' | 'jpg' | 'jpeg';
 
-
-
-// 生成DOCX文档的通用函数
-async function generateDocxBuffer(data: DocumentData, templateSource: 'local' | 'cloud' = 'local', templateName?: string): Promise<Buffer> {
-    let content: string;
-
-    if (templateSource === 'cloud' && templateName) {
-        // 从 Vercel Blob 获取模板
-        const templateBuffer = await getTemplateFromBlob(templateName);
-        content = templateBuffer.toString('binary');
-    } else {
-        // 使用本地模板文件
-        const filePath = path.join(process.cwd(), "public", "word", "Lulab_invioce.docx");
-        content = fs.readFileSync(filePath, "binary");
-    }
-
-    const zip = new PizZip(content);
-    const doc = new Docxtemplater(zip, {
-        linebreaks: true,
-        paragraphLoop: true,
-    });
-
-    // 渲染模板的变量，直接使用传入的数据
-    doc.render(data);
-
-    // 生成文档为 buffer
-    return doc.getZip().generate({
-        type: "nodebuffer",
-        mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    });
-}
-
-// 将DOCX转换为PDF的函数
-async function convertDocxToPdf(docBuffer: Buffer): Promise<Buffer> {
-    const PDF_API_URL = process.env.PDF_CONVERTER_API;
-    if (!PDF_API_URL) {
-        throw new Error("PDF API URL 未配置");
-    }
-
-    // 创建 FormData 对象
-    const form = new FormData();
-    form.append("fileInput", docBuffer, {
-        filename: "Lulab_invioce.docx",
-        contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    });
-
-    // 发送请求到 PDF 转换 API
-    const response = await axios.post(PDF_API_URL, form, {
-        headers: {
-            ...form.getHeaders(),
-            accept: "*/*",
-        },
-        responseType: "arraybuffer", // 接收二进制数据
-    });
-
-    return Buffer.from(response.data);
+// 格式处理器接口
+interface FormatHandler {
+    contentType: string;
+    fileExtension: string;
+    process: (docBuffer: Buffer) => Promise<Buffer>;
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
     try {
-        const data = await request.json(); // 从请求体中获取渲染数据
-        const url = new URL(request.url);
-        const format = url.searchParams.get('format') || 'docx'; // 默认返回docx格式
-        const templateSource = url.searchParams.get('source') as 'local' | 'cloud' || 'local'; // 模板来源参数
-        const templateName = url.searchParams.get('template'); // 可选的模板名称参数
+        // 创建一个可读流来模拟 IncomingMessage
+        const buffer = await request.arrayBuffer();
+        const readable = Readable.from(Buffer.from(buffer));
+
+        // 添加必要的属性来模拟 IncomingMessage
+        const mockRequest = Object.assign(readable, {
+            headers: Object.fromEntries(request.headers.entries()),
+            method: request.method,
+            url: request.url,
+            httpVersion: '1.1',
+            httpVersionMajor: 1,
+            httpVersionMinor: 1,
+            complete: true,
+            connection: null,
+            socket: null,
+            aborted: false,
+        });
+
+        // 使用 formidable 解析表单数据
+        const form = formidable({
+            multiples: false,
+            keepExtensions: true,
+            maxFileSize: 10 * 1024 * 1024, // 10MB
+        });
+
+        const [fields, files] = await form.parse(mockRequest as unknown as Parameters<typeof form.parse>[0]);
+
+        // 获取 format 参数，默认为 docx
+        const format = Array.isArray(fields.format) ? fields.format[0] : fields.format || 'docx';
+
+        // 获取 data 参数并解析为 JSON
+        const dataString = Array.isArray(fields.data) ? fields.data[0] : fields.data;
+        if (!dataString) {
+            return new NextResponse(JSON.stringify({ error: "缺少 data 参数" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
+
+        let data: DocumentData;
+        try {
+            data = JSON.parse(dataString);
+        } catch (_error) {
+            return new NextResponse(JSON.stringify({ error: "data 参数格式错误，必须是有效的 JSON" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
+
+        // 获取上传的模板文件
+        const templateFile = Array.isArray(files.template) ? files.template[0] : files.template;
+        if (!templateFile) {
+            return new NextResponse(JSON.stringify({ error: "缺少模板文件" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            });
+        }
+
+        // 读取模板文件内容
+        const templateBuffer = await fs.promises.readFile(templateFile.filepath);
 
         // 生成DOCX文档
-        const docBuffer = await generateDocxBuffer(data, templateSource, templateName || undefined);
+        const docBuffer = await generateDocxBuffer(data, templateBuffer, 'buffer');
 
-        // 根据format参数决定返回格式
-        if (format.toLowerCase() === 'pdf') {
-            try {
-                // 转换为PDF
-                const pdfBuffer = await convertDocxToPdf(docBuffer);
+        // 使用格式处理器处理不同的输出格式
+        const normalizedFormat = format.toLowerCase() as SupportedFormat;
 
-                return new NextResponse(new Uint8Array(pdfBuffer), {
-                    headers: {
-                        "Content-Type": "application/pdf",
-                        "Content-Disposition": 'attachment; filename="Lulab_invioce_converted.pdf"',
-                    },
-                });
-            } catch (error) {
-                console.error("PDF 转换失败:", error);
-                return new NextResponse(JSON.stringify({ error: "PDF 转换失败" }), {
-                    status: 500,
+        // 检查是否支持该格式
+        if (!formatHandlers[normalizedFormat]) {
+            return new NextResponse(
+                JSON.stringify({
+                    error: `不支持的格式: ${format}`,
+                    supportedFormats: Object.keys(formatHandlers)
+                }),
+                {
+                    status: 400,
                     headers: { "Content-Type": "application/json" },
-                });
-            }
-        } else {
-            // 返回DOCX格式
-            return new NextResponse(new Uint8Array(docBuffer), {
+                }
+            );
+        }
+
+        const handler = formatHandlers[normalizedFormat];
+
+        try {
+            // 使用对应的处理器处理文档
+            const processedBuffer = await handler.process(docBuffer);
+
+            return new NextResponse(new Uint8Array(processedBuffer), {
                 headers: {
-                    "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    "Content-Disposition": 'attachment; filename="offer_letter.docx"',
+                    "Content-Type": handler.contentType,
+                    "Content-Disposition": `attachment; filename="document_converted.${handler.fileExtension}"`,
                 },
             });
+        } catch (error) {
+            console.error(`${format.toUpperCase()} 转换失败:`, error);
+            return new NextResponse(
+                JSON.stringify({ error: `${format.toUpperCase()} 转换失败` }),
+                {
+                    status: 500,
+                    headers: { "Content-Type": "application/json" },
+                }
+            );
         }
     } catch (error) {
         console.error("文档生成失败:", error);
@@ -115,3 +140,62 @@ export async function POST(request: Request): Promise<NextResponse> {
         });
     }
 }
+
+
+
+// 格式处理器映射
+const formatHandlers: Record<SupportedFormat, FormatHandler> = {
+    docx: {
+        contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        fileExtension: 'docx',
+        process: async (docBuffer: Buffer) => docBuffer, // 直接返回原始buffer
+    },
+    pdf: {
+        contentType: 'application/pdf',
+        fileExtension: 'pdf',
+        process: async (docBuffer: Buffer) => {
+            try {
+                return await convertDocxToPdf(docBuffer);
+            } catch (error) {
+                console.error('PDF 转换失败:', error);
+                throw new Error('PDF 转换失败');
+            }
+        },
+    },
+    png: {
+        contentType: 'image/png',
+        fileExtension: 'png',
+        process: async (docBuffer: Buffer) => {
+            try {
+                return await convertDocxToImage(docBuffer, 'png');
+            } catch (error) {
+                console.error('PNG 转换失败:', error);
+                throw new Error('PNG 转换失败');
+            }
+        },
+    },
+    jpg: {
+        contentType: 'image/jpeg',
+        fileExtension: 'jpg',
+        process: async (docBuffer: Buffer) => {
+            try {
+                return await convertDocxToImage(docBuffer, 'jpg');
+            } catch (error) {
+                console.error('JPG 转换失败:', error);
+                throw new Error('JPG 转换失败');
+            }
+        },
+    },
+    jpeg: {
+        contentType: 'image/jpeg',
+        fileExtension: 'jpeg',
+        process: async (docBuffer: Buffer) => {
+            try {
+                return await convertDocxToImage(docBuffer, 'jpeg');
+            } catch (error) {
+                console.error('JPEG 转换失败:', error);
+                throw new Error('JPEG 转换失败');
+            }
+        },
+    },
+};

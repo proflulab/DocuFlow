@@ -1,3 +1,13 @@
+/*
+ * @Author: 杨仕明 shiming.y@qq.com
+ * @Date: 2025-08-18 02:17:30
+ * @LastEditors: 杨仕明 shiming.y@qq.com
+ * @LastEditTime: 2025-08-19 13:23:49
+ * @FilePath: /next_word_auto/src/app/api/templates/route.ts
+ * @Description: 
+ * 
+ * Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
+ */
 import { list } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
@@ -14,7 +24,8 @@ export async function GET(): Promise<NextResponse> {
                 pathname: blob.pathname,
                 url: blob.url,
                 size: blob.size,
-                uploadedAt: blob.uploadedAt
+                uploadedAt: blob.uploadedAt,
+                downloadUrl: blob.downloadUrl,
             }));
 
         return NextResponse.json({
