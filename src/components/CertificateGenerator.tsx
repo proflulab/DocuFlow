@@ -2,98 +2,29 @@
 
 import React, { useState, useCallback } from 'react';
 import { Button, Card, Space, Typography, message, Popconfirm, DatePicker, Select, Input, InputNumber, Checkbox } from 'antd';
-import { PlusOutlined, DeleteOutlined, DownloadOutlined, FilePdfOutlined, CloudOutlined, SettingOutlined } from '@ant-design/icons';
-import { saveAs } from 'file-saver';
+import { PlusOutlined, DeleteOutlined, CloudOutlined, SettingOutlined, EyeOutlined } from '@ant-design/icons';
+import TemplatePreview from './TemplatePreview';
+import DocumentGenerator from './DocumentGenerator';
 import dayjs from 'dayjs';
-import { z } from 'zod';
 import { COUNTRIES } from '../constants/countries';
+import { FIELD_TYPES, DEFAULT_FIELDS } from '../constants/fields';
+import { CURRENCY_OPTIONS } from '../constants/currencies';
+import { FieldConfig, CloudTemplate } from '../types';
+import { inferFieldType } from '../utils/fieldTypeInference';
+
 
 const { Title } = Typography;
 
-// 字段校验规则
-const createFieldSchema = (field: FieldConfig) => {
-    switch (field.type) {
-        case 'text':
-            return z.string().min(1, `${field.label}不能为空`);
-        case 'email':
-            return z.email({ message: `${field.label}格式不正确` });
-        case 'number':
-            return z.string().regex(/^\d+$/, `${field.label}必须是数字`);
-        case 'phone':
-            return z.string().regex(/^1[3-9]\d{9}$/, `${field.label}格式不正确`);
-        case 'currency':
-            return z.string().regex(/^\d+(\.\d{1,2})?$/, `${field.label}格式不正确`);
-        case 'date':
-            return z.string().min(1, `请选择${field.label}`);
-        case 'select':
-        case 'country':
-            return z.string().min(1, `请选择${field.label}`);
-        default:
-            return z.string().min(1, `${field.label}不能为空`);
-    }
-};
-
-// 创建完整的表单校验规则
-const createFormSchema = (fields: FieldConfig[]) => {
-    const schemaObject: Record<string, z.ZodTypeAny> = {};
-    fields.forEach(field => {
-        if (field.required !== false) { // 默认为必填
-            schemaObject[field.name] = createFieldSchema(field);
-        }
-    });
-    return z.object(schemaObject);
-};
-
-// 字段类型选项
-interface FieldConfig {
-    id: string;
-    name: string;
-    label: string;
-    type: 'text' | 'email' | 'number' | 'phone' | 'currency' | 'date' | 'select' | 'country';
-    value: string | number | boolean;
-    options?: string[]; // 用于select类型
-    required?: boolean;
-}
-
-// 字段类型选项
-const FIELD_TYPES = [
-    { label: '文本', value: 'text' },
-    { label: '邮箱', value: 'email' },
-    { label: '数字', value: 'number' },
-    { label: '电话号码', value: 'phone' },
-    { label: '货币', value: 'currency' },
-    { label: '日期', value: 'date' },
-    { label: '国家', value: 'country' },
-];
-
-// 默认字段配置
-const DEFAULT_FIELDS: FieldConfig[] = [
-    { id: '1', name: 'name', label: '姓名', type: 'text', value: '', required: true },
-    { id: '2', name: 'email', label: '邮箱', type: 'email', value: '', required: true },
-    { id: '3', name: 'phone', label: '电话', type: 'phone', value: '', required: false },
-    { id: '4', name: 'amount', label: '金额', type: 'currency', value: 0, required: false },
-];
-
-// 云端模板接口
-interface CloudTemplate {
-    name: string;
-    pathname: string;
-    url: string;
-    size: number;
-    uploadedAt: string;
-}
-
 export default function CertificateGenerator() {
     const [fields, setFields] = useState<FieldConfig[]>(DEFAULT_FIELDS);
-    const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
-    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const [formData, setFormData] = useState<Record<string, string | number | boolean | null | undefined>>({});
-    const [templateSource] = useState<'cloud'>('cloud');
     const [cloudTemplateName, setCloudTemplateName] = useState<string>('');
     const [cloudTemplates, setCloudTemplates] = useState<CloudTemplate[]>([]);
     const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
     const [isAutoConfiguring, setIsAutoConfiguring] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [previewVisible, setPreviewVisible] = useState(false);
+    const [previewTemplateUrl, setPreviewTemplateUrl] = useState<string>('');
 
     // 获取云端模板列表
     const fetchCloudTemplates = useCallback(async () => {
@@ -141,10 +72,10 @@ export default function CertificateGenerator() {
         const newField: FieldConfig = {
             id: Date.now().toString(),
             name: `field_${Date.now()}`,
-            label: '新字段',
             type: 'text',
             value: '',
             required: false,
+            format: {},
         };
         setFields([...fields, newField]);
     };
@@ -172,17 +103,34 @@ export default function CertificateGenerator() {
         const hideLoading = message.loading('正在分析模板字段...', 0);
 
         try {
-            const response = await fetch(`/api/template-fields?source=cloud&template=${encodeURIComponent(cloudTemplateName)}`);
+            // 直接从已加载的cloudTemplates中找到选中的模板
+            const selectedTemplate = cloudTemplates.find((t: CloudTemplate) => t.name === cloudTemplateName);
+            if (!selectedTemplate) {
+                throw new Error('指定的模板文件不存在');
+            }
+
+            // 下载模板文件
+            const templateResponse = await fetch(selectedTemplate.url);
+            const templateBlob = await templateResponse.blob();
+
+            // 创建 FormData 并发送 POST 请求
+            const formData = new FormData();
+            formData.append('template', templateBlob, cloudTemplateName);
+
+            const response = await fetch('/api/template-fields', {
+                method: 'POST',
+                body: formData
+            });
             const result = await response.json();
 
             if (result.success && result.fields) {
                 const autoFields: FieldConfig[] = result.fields.map((fieldName: string, index: number) => ({
                     id: `auto_${Date.now()}_${index}`,
                     name: fieldName,
-                    label: fieldName,
-                    type: 'text' as const,
+                    type: inferFieldType(fieldName),
                     value: '',
                     required: false,
+                    format: {},
                 }));
 
                 setFields(autoFields);
@@ -211,6 +159,82 @@ export default function CertificateGenerator() {
     };
 
 
+    // 渲染格式配置组件
+    const renderFormatConfig = (field: FieldConfig) => {
+        switch (field.type) {
+            case 'currency':
+                return (
+                    <div className="flex gap-2">
+                        <Select
+                            value={field.format?.currencySymbol || '¥'}
+                            onChange={(value) => updateField(field.id, {
+                                format: { ...field.format, currencySymbol: value }
+                            })}
+                            size="small"
+                            className="w-16"
+                            options={CURRENCY_OPTIONS}
+                        />
+                        <Select
+                            value={field.format?.decimalPlaces ?? 2}
+                            onChange={(value) => updateField(field.id, {
+                                format: { ...field.format, decimalPlaces: value }
+                            })}
+                            size="small"
+                            className="w-20"
+                            options={[
+                                { label: '0位', value: 0 },
+                                { label: '1位', value: 1 },
+                                { label: '2位', value: 2 },
+                                { label: '3位', value: 3 },
+                            ]}
+                        />
+                    </div>
+                );
+            case 'date':
+                return (
+                    <Select
+                        value={field.format?.dateFormat || 'YYYY-MM-DD'}
+                        onChange={(value) => updateField(field.id, {
+                            format: { ...field.format, dateFormat: value }
+                        })}
+                        size="small"
+                        className="w-full"
+                        styles={{ popup: { root: { minWidth: '230px' } } }}
+                        options={[
+                            { label: '2024-01-01', value: 'YYYY-MM-DD' },
+                            { label: '2024/01/01', value: 'YYYY/MM/DD' },
+                            { label: '01/01/2024', value: 'MM/DD/YYYY' },
+                            { label: '2024年1月1日', value: 'YYYY年M月D日' },
+                            { label: '1月1日', value: 'M月D日' },
+                            { label: 'January 1, 2024', value: 'MMMM D, YYYY' },
+                            { label: 'Jan 1, 2024', value: 'MMM D, YYYY' },
+                            { label: '1st January 2024', value: 'Do MMMM YYYY' },
+                            { label: 'Monday, January 1, 2024', value: 'dddd, MMMM D, YYYY' },
+                            { label: 'Mon, Jan 1, 2024', value: 'ddd, MMM D, YYYY' },
+                        ]}
+                    />
+                );
+            case 'number':
+                return (
+                    <Select
+                        value={field.format?.numberFormat || 'normal'}
+                        onChange={(value) => updateField(field.id, {
+                            format: { ...field.format, numberFormat: value }
+                        })}
+                        size="small"
+                        className="w-full"
+                        options={[
+                            { label: '普通数字', value: 'normal' },
+                            { label: '千分位', value: 'thousand' },
+                            { label: '百分比', value: 'percent' },
+                        ]}
+                    />
+                );
+            default:
+                return <span className="text-xs text-gray-400">无格式选项</span>;
+        }
+    };
+
     // 渲染字段值输入组件
     const renderFieldValueInput = (field: FieldConfig) => {
         const isRequired = field.required;
@@ -224,7 +248,7 @@ export default function CertificateGenerator() {
                     <Input
                         value={(formData[field.name] as string) || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
-                        placeholder={`输入${field.label}`}
+                        placeholder={`输入${field.name}`}
                         size="small"
                         status={isRequired && !hasValue ? 'error' : undefined}
                     />
@@ -235,7 +259,7 @@ export default function CertificateGenerator() {
                         type="email"
                         value={(formData[field.name] as string) || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
-                        placeholder={`输入${field.label}`}
+                        placeholder={`输入${field.name}`}
                         size="small"
                         status={isRequired && !hasValue ? 'error' : undefined}
                     />
@@ -245,9 +269,10 @@ export default function CertificateGenerator() {
                     <InputNumber
                         value={(formData[field.name] as number) || undefined}
                         onChange={(value) => setFormData(prev => ({ ...prev, [field.name]: value }))}
-                        placeholder={`输入${field.label}`}
+                        placeholder={`输入${field.name}`}
                         size="small"
                         className="w-full"
+                        style={{ width: '100%', }}
                         status={isRequired && !hasValue ? 'error' : undefined}
                     />
                 );
@@ -256,11 +281,12 @@ export default function CertificateGenerator() {
                     <InputNumber
                         value={(formData[field.name] as number) || undefined}
                         onChange={(value) => setFormData(prev => ({ ...prev, [field.name]: value }))}
-                        placeholder={`输入${field.label}`}
+                        placeholder={`输入${field.name}`}
                         size="small"
                         className="w-full"
-                        prefix="¥"
-                        precision={2}
+                        style={{ width: '100%', }}
+                        prefix={field.format?.currencySymbol || '¥'}
+                        precision={field.format?.decimalPlaces || 2}
                         min={0}
                         status={isRequired && !hasValue ? 'error' : undefined}
                     />
@@ -271,8 +297,9 @@ export default function CertificateGenerator() {
                         value={formData[field.name] ? dayjs(formData[field.name] as string) : null}
                         onChange={(date, dateString) => setFormData(prev => ({ ...prev, [field.name]: dateString as string }))}
                         className="w-full"
-                        placeholder={`选择${field.label}`}
+                        placeholder={`选择${field.name}`}
                         size="small"
+                        format={field.format?.dateFormat || 'YYYY-MM-DD'}
                         status={isRequired && !hasValue ? 'error' : undefined}
                     />
                 );
@@ -281,7 +308,7 @@ export default function CertificateGenerator() {
                     <Select
                         value={(formData[field.name] as string) || undefined}
                         onChange={(value) => setFormData(prev => ({ ...prev, [field.name]: value }))}
-                        placeholder={`请选择${field.label}`}
+                        placeholder={`请选择${field.name}`}
                         className="w-full"
                         size="small"
                         options={COUNTRIES}
@@ -298,7 +325,7 @@ export default function CertificateGenerator() {
                     <Input
                         value={(formData[field.name] as string) || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
-                        placeholder={`输入${field.label}`}
+                        placeholder={`输入${field.name}`}
                         size="small"
                         status={isRequired && !hasValue ? 'error' : undefined}
                     />
@@ -306,111 +333,7 @@ export default function CertificateGenerator() {
         }
     };
 
-    // 验证表单数据
-    const validateFormData = () => {
-        try {
-            const schema = createFormSchema(fields);
-            const data: Record<string, string | number | boolean> = {};
-            fields.forEach(field => {
-                data[field.name] = formData[field.name] || field.value || '';
-            });
-            schema.parse(data);
-            return { success: true, data };
-        } catch (error) {
-            if (error instanceof z.ZodError) {
-                const firstError = error.issues[0];
-                message.error(firstError.message);
-                return { success: false, error: firstError.message };
-            }
-            message.error('数据验证失败');
-            return { success: false, error: '数据验证失败' };
-        }
-    };
 
-    // 生成文档数据
-    const generateDocumentData = () => {
-        const validation = validateFormData();
-        if (!validation.success) {
-            return null; // 返回 null 表示校验失败
-        }
-        return validation.data;
-    };
-
-    // 生成DOCX文档
-    const generateDocument = async () => {
-        setIsGeneratingDocx(true);
-        try {
-            const data = generateDocumentData();
-            if (!data) {
-                return; // 校验失败，直接返回
-            }
-
-            // 构建API URL
-            let apiUrl = `/api/document?format=docx&source=${templateSource}`;
-            if (templateSource === 'cloud' && cloudTemplateName.trim()) {
-                apiUrl += `&template=${encodeURIComponent(cloudTemplateName.trim())}`;
-            }
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to generate document: ${response.statusText}`);
-            }
-
-            const blob = await response.blob();
-            saveAs(blob, `document_${Date.now()}.docx`);
-            message.success('DOCX文档生成成功！');
-        } catch (error) {
-            console.error('Error generating document:', error);
-            message.error('文档生成失败，请重试');
-        } finally {
-            setIsGeneratingDocx(false);
-        }
-    };
-
-    // 生成PDF文档
-    const generatePdf = async () => {
-        setIsGeneratingPdf(true);
-        try {
-            const data = generateDocumentData();
-            if (!data) {
-                return; // 校验失败，直接返回
-            }
-
-            // 构建API URL
-            let apiUrl = `/api/document?format=pdf&source=${templateSource}`;
-            if (templateSource === 'cloud' && cloudTemplateName.trim()) {
-                apiUrl += `&template=${encodeURIComponent(cloudTemplateName.trim())}`;
-            }
-
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to generate PDF: ${response.statusText}`);
-            }
-
-            const blob = await response.blob();
-            saveAs(blob, `document_${Date.now()}.pdf`);
-            message.success('PDF文档生成成功！');
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            message.error('PDF生成失败，请重试');
-        } finally {
-            setIsGeneratingPdf(false);
-        }
-    };
 
     // 显示加载状态直到组件完全初始化
     if (!isInitialized) {
@@ -452,29 +375,49 @@ export default function CertificateGenerator() {
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     选择模板
                                 </label>
-                                <Select
-                                    placeholder="请选择云端模板文件"
-                                    value={cloudTemplateName || undefined}
-                                    onChange={(value) => setCloudTemplateName(value)}
-                                    className="w-full"
-                                    loading={isLoadingTemplates}
-                                    showSearch
-                                    filterOption={(input, option) =>
-                                        (option?.value ?? '').toLowerCase().includes(input.toLowerCase())
-                                    }
-                                    options={cloudTemplates.map(template => ({
-                                        label: (
-                                            <div className="flex justify-between items-center">
-                                                <span>{template.name}</span>
-                                                <span className="text-xs text-gray-400">
-                                                    {(template.size / 1024).toFixed(1)}KB
-                                                </span>
-                                            </div>
-                                        ),
-                                        value: template.name
-                                    }))}
-                                    notFoundContent={isLoadingTemplates ? '加载中...' : '暂无可用模板'}
-                                />
+                                <div className="flex gap-2">
+                                    <Select
+                                        placeholder="请选择云端模板文件"
+                                        value={cloudTemplateName || undefined}
+                                        onChange={(value) => setCloudTemplateName(value)}
+                                        className="flex-1"
+                                        loading={isLoadingTemplates}
+                                        showSearch
+                                        filterOption={(input, option) =>
+                                            (option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+                                        }
+                                        options={cloudTemplates.map(template => ({
+                                            label: (
+                                                <div className="flex justify-between items-center">
+                                                    <span>{template.name}</span>
+                                                    <span className="text-xs text-gray-400">
+                                                        {(template.size / 1024).toFixed(1)}KB
+                                                    </span>
+                                                </div>
+                                            ),
+                                            value: template.name
+                                        }))}
+                                        notFoundContent={isLoadingTemplates ? '加载中...' : '暂无可用模板'}
+                                    />
+                                    <Button
+                                        icon={<EyeOutlined />}
+                                        onClick={() => {
+                                            if (cloudTemplateName) {
+                                                const selectedTemplate = cloudTemplates.find(t => t.name === cloudTemplateName);
+                                                if (selectedTemplate) {
+                                                    setPreviewTemplateUrl(selectedTemplate.url);
+                                                    setPreviewVisible(true);
+                                                }
+                                            } else {
+                                                message.warning('请先选择一个模板');
+                                            }
+                                        }}
+                                        disabled={!cloudTemplateName || isLoadingTemplates}
+                                        title="预览模板"
+                                    >
+                                        预览
+                                    </Button>
+                                </div>
                                 <div className="text-xs text-gray-500 mt-1">
                                     {cloudTemplates.length > 0
                                         ? `找到 ${cloudTemplates.length} 个可用模板`
@@ -529,10 +472,10 @@ export default function CertificateGenerator() {
                                 <div className="hidden lg:block">
                                     <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-gray-50 rounded-lg text-xs font-medium text-gray-600">
                                         <div className="col-span-2">字段名称</div>
-                                        <div className="col-span-2">显示标签</div>
                                         <div className="col-span-2">字段类型</div>
+                                        <div className="col-span-2">格式</div>
                                         <div className="col-span-1">必填</div>
-                                        <div className="col-span-3">字段值</div>
+                                        <div className="col-span-2">字段值</div>
                                         <div className="col-span-2">操作</div>
                                     </div>
                                 </div>
@@ -566,15 +509,6 @@ export default function CertificateGenerator() {
                                                     />
                                                 </div>
                                                 <div className="col-span-2">
-                                                    <Input
-                                                        value={field.label}
-                                                        onChange={(e) => updateField(field.id, { label: e.target.value })}
-                                                        placeholder="显示标签"
-                                                        size="small"
-                                                        status={!field.label ? 'error' : undefined}
-                                                    />
-                                                </div>
-                                                <div className="col-span-2">
                                                     <Select
                                                         value={field.type}
                                                         onChange={(value) => updateField(field.id, { type: value as FieldConfig['type'] })}
@@ -583,13 +517,16 @@ export default function CertificateGenerator() {
                                                         options={FIELD_TYPES}
                                                     />
                                                 </div>
+                                                <div className="col-span-2">
+                                                    {renderFormatConfig(field)}
+                                                </div>
                                                 <div className="col-span-1 flex justify-start">
                                                     <Checkbox
                                                         checked={field.required}
                                                         onChange={(e) => updateField(field.id, { required: e.target.checked })}
                                                     />
                                                 </div>
-                                                <div className="col-span-3">
+                                                <div className="col-span-2">
                                                     {renderFieldValueInput(field)}
                                                 </div>
                                                 <div className="col-span-2 flex items-center gap-2">
@@ -657,19 +594,6 @@ export default function CertificateGenerator() {
                                                         />
                                                     </div>
                                                     <div className="space-y-1">
-                                                        <label className="text-xs font-medium text-gray-600">
-                                                            显示标签
-                                                            <span className="text-red-500 ml-1">*</span>
-                                                        </label>
-                                                        <Input
-                                                            value={field.label}
-                                                            onChange={(e) => updateField(field.id, { label: e.target.value })}
-                                                            placeholder="显示标签"
-                                                            size="small"
-                                                            status={!field.label ? 'error' : undefined}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-1">
                                                         <label className="text-xs font-medium text-gray-600">字段类型</label>
                                                         <Select
                                                             value={field.type}
@@ -678,6 +602,10 @@ export default function CertificateGenerator() {
                                                             className="w-full"
                                                             options={FIELD_TYPES}
                                                         />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-xs font-medium text-gray-600">格式</label>
+                                                        {renderFormatConfig(field)}
                                                     </div>
                                                     <div className="space-y-1">
                                                         <label className="text-xs font-medium text-gray-600">
@@ -705,31 +633,21 @@ export default function CertificateGenerator() {
                     </Card>
 
                     {/* 文档生成区域 */}
-                    <Card >
-                        <div className="text-center">
-                            <Space>
-                                <Button
-                                    type="primary"
-                                    icon={<DownloadOutlined />}
-                                    loading={isGeneratingDocx}
-                                    onClick={generateDocument}
-                                >
-                                    生成DOCX文档
-                                </Button>
-                                <Button
-                                    type="primary"
-                                    icon={<FilePdfOutlined />}
-                                    loading={isGeneratingPdf}
-                                    onClick={generatePdf}
-                                    style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-                                >
-                                    生成PDF文档
-                                </Button>
-                            </Space>
-                        </div>
-                    </Card>
+                    <DocumentGenerator
+                        fields={fields}
+                        formData={formData}
+                        cloudTemplateName={cloudTemplateName}
+                    />
                 </Card>
             </div>
+
+            {/* 模板预览组件 */}
+            <TemplatePreview
+                visible={previewVisible}
+                onClose={() => setPreviewVisible(false)}
+                templateUrl={previewTemplateUrl}
+                templateName={cloudTemplateName}
+            />
         </div>
     );
 }

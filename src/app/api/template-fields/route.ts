@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-16 12:31:18
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-08-16 13:52:02
+ * @LastEditTime: 2025-08-19 14:35:26
  * @FilePath: /next_word_auto/src/app/api/template-fields/route.ts
  * @Description: 
  * 
@@ -10,56 +10,61 @@
  */
 
 import { NextResponse } from "next/server";
-import Docxtemplater from "docxtemplater";
-import PizZip from "pizzip";
-import path from "path";
+import { getTemplateFields } from "@/services/docxTemplateService";
+import formidable from "formidable";
+import { Readable } from "stream";
 import fs from "fs";
-import { getTemplateFromBlob } from "@/utils/blob";
 
-// 获取模板字段的函数
-async function getTemplateFields(templateSource: 'local' | 'cloud' = 'local', templateName?: string): Promise<string[]> {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const InspectModule = require("docxtemplater/js/inspect-module");
-    const iModule = InspectModule();
-    let content: string;
-
-    if (templateSource === 'cloud' && templateName) {
-        const templateBuffer = await getTemplateFromBlob(templateName);
-        content = templateBuffer.toString('binary');
-    } else {
-        const filePath = path.join(process.cwd(), "public", "word", "Lulab_invioce.docx");
-        content = fs.readFileSync(filePath, "binary");
-    }
-
-    const zip = new PizZip(content);
-
-    // 只解析，不渲染
-    new Docxtemplater(zip, {
-        paragraphLoop: true,
-        linebreaks: true,
-        modules: [iModule],        // 挂载模块
-    });
-
-    // 拿到所有占位符（字段名）
-    const tagsObj = iModule.getAllTags(); // { first_name: null, last_name: null, ... }
-    const fieldNames = Object.keys(tagsObj);
-    console.log("模板字段：", fieldNames);
-
-    // 提取所有占位符
-    return fieldNames
-}
-
-export async function GET(request: Request): Promise<NextResponse> {
+export async function POST(request: Request): Promise<NextResponse> {
     try {
-        const url = new URL(request.url);
-        const templateSource = url.searchParams.get('source') as 'local' | 'cloud' || 'local';
-        const templateName = url.searchParams.get('template');
+        // 创建一个可读流来模拟 IncomingMessage
+        const buffer = await request.arrayBuffer();
+        const readable = Readable.from(Buffer.from(buffer));
 
-        const fields = await getTemplateFields(templateSource, templateName || undefined);
+        // 添加必要的属性来模拟 IncomingMessage
+        const mockRequest = Object.assign(readable, {
+            headers: Object.fromEntries(request.headers.entries()),
+            method: request.method,
+            url: request.url,
+            httpVersion: '1.1',
+            httpVersionMajor: 1,
+            httpVersionMinor: 1,
+            complete: true,
+            connection: null,
+            socket: null,
+            aborted: false,
+        });
+
+        // 使用 formidable 解析表单数据
+        const form = formidable({
+            multiples: false,
+            keepExtensions: true,
+            maxFileSize: 10 * 1024 * 1024, // 10MB
+        });
+
+        const [fields, files] = await form.parse(mockRequest as any);
+
+        // 获取上传的模板文件
+        const templateFile = Array.isArray(files.template) ? files.template[0] : files.template;
+        if (!templateFile) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "缺少模板文件"
+                },
+                { status: 400 }
+            );
+        }
+
+        // 读取模板文件内容
+        const templateBuffer = await fs.promises.readFile(templateFile.filepath);
+
+        // 解析模板字段
+        const templateFields = await getTemplateFields(templateBuffer, 'buffer');
 
         return NextResponse.json({
             success: true,
-            fields
+            fields: templateFields
         });
     } catch (error) {
         console.error('获取模板字段失败:', error);
