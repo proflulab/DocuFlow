@@ -86,6 +86,31 @@ export default function Home() {
             <FeatureCard key={card.href} {...card} />
           ))}
         </div>
+
+        {/* 底部标注 */}
+        <div className="text-center mt-16 pt-8 border-t border-gray-200 dark:border-gray-700">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Made in{' '}
+            <a 
+              href="https://mc.tencent.com/HRVjVcS5" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200 font-medium"
+            >
+              CodeBuddy
+            </a>
+            {' '}|{' '}
+            Powered by{' '}
+            <a 
+              href="https://docs.cloudbase.net/ai/cloudbase-ai-toolkit/?from=csdn-hackathon-2025" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200 font-medium"
+            >
+              CloudBase
+            </a>
+          </p>
+        </div>
       </main>
     </div>
   );
