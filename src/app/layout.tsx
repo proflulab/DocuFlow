@@ -12,7 +12,7 @@
 import '@ant-design/v5-patch-for-react-19';
 import type { Metadata } from "next";
 import "./globals.css";
-import Navigation from "../components/Navigation";
+import Navigation from "../components/layout/Navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 
 const geistSans = Geist({

@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-16 12:31:18
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-08-19 14:35:26
+ * @LastEditTime: 2025-08-20 16:50:24
  * @FilePath: /next_word_auto/src/app/api/template-fields/route.ts
  * @Description: 
  * 
@@ -42,7 +42,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             maxFileSize: 10 * 1024 * 1024, // 10MB
         });
 
-        const [_fields, files] = await form.parse(mockRequest as unknown as Parameters<typeof form.parse>[0]);
+        const [, files] = await form.parse(mockRequest as unknown as Parameters<typeof form.parse>[0]);
 
         // 获取上传的模板文件
         const templateFile = Array.isArray(files.template) ? files.template[0] : files.template;
