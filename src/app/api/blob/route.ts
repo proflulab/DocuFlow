@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // 获取文件列表
-      const options: any = {};
+      const options: { prefix?: string; limit?: number } = {};
       if (prefix) options.prefix = prefix;
       if (limit) options.limit = parseInt(limit);
 

@@ -192,7 +192,7 @@ export async function checkBlobExists(
     try {
         await head(pathname, options);
         return true;
-    } catch (error) {
+    } catch {
         return false;
     }
 }

@@ -127,7 +127,7 @@ export async function getFileFromCache(fileId: string): Promise<File | null> {
         const transaction = db.transaction([STORE_NAME], 'readonly');
         const store = transaction.objectStore(STORE_NAME);
 
-        const result = await new Promise<any>((resolve, reject) => {
+        const result = await new Promise<{ data: ArrayBuffer; metadata: CachedFile } | undefined>((resolve, reject) => {
             const request = store.get(fileId);
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);

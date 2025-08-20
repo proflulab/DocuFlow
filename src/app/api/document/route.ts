@@ -45,7 +45,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             connection: null,
             socket: null,
             aborted: false,
-        });
+        }) as unknown as import('http').IncomingMessage;
 
         // 使用 formidable 解析表单数据
         const form = formidable({
@@ -54,7 +54,7 @@ export async function POST(request: Request): Promise<NextResponse> {
             maxFileSize: 10 * 1024 * 1024, // 10MB
         });
 
-        const [fields, files] = await form.parse(mockRequest as unknown as Parameters<typeof form.parse>[0]);
+        const [fields, files] = await form.parse(mockRequest);
 
         // 获取 format 参数，默认为 docx
         const format = Array.isArray(fields.format) ? fields.format[0] : fields.format || 'docx';
@@ -71,7 +71,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         let data: DocumentData;
         try {
             data = JSON.parse(dataString);
-        } catch (_error) {
+        } catch {
             return new NextResponse(JSON.stringify({ error: "data 参数格式错误，必须是有效的 JSON" }), {
                 status: 400,
                 headers: { "Content-Type": "application/json" },

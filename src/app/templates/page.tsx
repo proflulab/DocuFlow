@@ -83,7 +83,7 @@ export default function TemplatesPage() {
       }
 
       const { blobs } = result.data;
-      const templates: TemplateFile[] = blobs.map((blob: any) => ({
+      const templates: TemplateFile[] = blobs.map((blob: { pathname: string; size: number; uploadedAt: string; url: string }) => ({
         id: blob.pathname,
         name: blob.pathname.replace('templates/', ''),
         size: blob.size,

@@ -14,13 +14,14 @@
  * @param docBuffer DOCX文档的Buffer
  * @returns PNG图片的Buffer
  */
-export async function convertDocxToPng(_docBuffer: Buffer): Promise<Buffer> {
+export async function convertDocxToPng(docBuffer: Buffer): Promise<Buffer> {
     // TODO: 实现DOCX到PNG的转换
     // 可以使用以下库之一:
     // 1. puppeteer - 通过HTML渲染
     // 2. sharp + html2canvas - 图片处理
     // 3. libreoffice headless - 命令行转换
     // 4. docx2html + html2canvas - 两步转换
+    void docBuffer; // 标记参数已知但暂未使用
 
     throw new Error('PNG转换功能尚未实现，请等待后续版本支持');
 }
@@ -30,9 +31,10 @@ export async function convertDocxToPng(_docBuffer: Buffer): Promise<Buffer> {
  * @param docBuffer DOCX文档的Buffer
  * @returns JPG图片的Buffer
  */
-export async function convertDocxToJpg(_docBuffer: Buffer): Promise<Buffer> {
+export async function convertDocxToJpg(docBuffer: Buffer): Promise<Buffer> {
     // TODO: 实现DOCX到JPG的转换
     // 实现思路同PNG，最后使用sharp转换格式
+    void docBuffer; // 标记参数已知但暂未使用
 
     throw new Error('JPG转换功能尚未实现，请等待后续版本支持');
 }
