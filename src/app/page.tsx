@@ -10,7 +10,7 @@
  */
 'use client';
 
-import FeatureCard from '../components/FeatureCard';
+import FeatureCard from '../components/ui/FeatureCard';
 
 const FEATURES = [
   { label: '动态字段配置', color: 'bg-green-500' },

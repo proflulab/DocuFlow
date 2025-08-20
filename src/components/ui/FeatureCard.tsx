@@ -2,8 +2,8 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-18 03:00:22
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-08-18 03:12:57
- * @FilePath: /next_word_auto/src/components/FeatureCard.tsx
+ * @LastEditTime: 2025-08-20 02:21:45
+ * @FilePath: /next_word_auto/src/components/ui/FeatureCard.tsx
  * @Description: 功能卡片组件
  * 
  * Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
@@ -13,14 +13,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-
-interface FeatureCardProps {
-  title: string;
-  description: string;
-  href: string;
-  icon: string;
-  gradient: string;
-}
+import { FeatureCardProps } from '@/types';
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, href, icon, gradient }) => {
   return (
@@ -52,4 +45,3 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ title, description, href, ico
 };
 
 export default FeatureCard;
-export type { FeatureCardProps };

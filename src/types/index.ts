@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-18 17:21:19
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-08-19 14:04:01
+ * @LastEditTime: 2025-08-20 02:21:28
  * @FilePath: /next_word_auto/src/types/index.ts
  * @Description: 
  * 
@@ -32,4 +32,12 @@ export interface CloudTemplate {
     url: string;
     size: number;
     uploadedAt: string;
+}
+
+export interface FeatureCardProps {
+    title: string;
+    description: string;
+    href: string;
+    icon: string;
+    gradient: string;
 }
