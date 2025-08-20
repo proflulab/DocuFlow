@@ -1,36 +1,214 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 文档自动化平台
 
-## Getting Started
+一个基于 Next.js 14 构建的现代化文档生成平台，专注于提供一站式文档生成解决方案。支持各种专业文档和证书的自动化生成，包括录取通知书、培训证书、发票等。
 
-First, run the development server:
+## ✨ 核心功能
+
+### 🎯 智能证书生成器
+
+- **动态字段配置**: 支持多种字段类型（文本、邮箱、电话、货币、日期、国家选择等）
+- **实时表单验证**: 基于 Zod 的强类型校验，确保数据准确性
+- **多格式输出**: 支持 DOCX 和 PDF 两种格式的文档生成
+- **模板灵活切换**: 支持本地模板和云端模板（Vercel Blob）两种模式
+- **字段自动识别**: 智能解析模板文件中的占位符，自动生成对应的表单字段
+
+### 📁 模板管理系统
+
+- **云端存储**: 基于 Vercel Blob 的模板文件管理
+- **模板列表**: 实时获取和展示可用的文档模板
+- **模板预览**: 支持模板文件的基本信息查看
+- **动态加载**: 根据选择的模板自动调整表单字段
+
+### 🔄 批量处理功能（开发中）
+
+- **Excel/CSV 导入**: 支持批量数据导入
+- **批量生成**: 一次性生成多个文档
+- **进度跟踪**: 实时显示批量处理进度
+- **结果打包**: 自动打包生成的文档供下载
+- **浏览器缓存**: 临时存储文件到浏览器端，支持跨页刷新和刷新操作
+- **API文档生成**: 基于 Swagger 自动生成 API 文档
+
+### 🎨 现代化用户界面
+
+- **响应式设计**: 完美适配桌面端和移动端
+- **Ant Design 组件**: 使用专业的 UI 组件库
+- **Tailwind CSS**: 现代化的样式系统
+- **渐变背景**: 美观的视觉效果和用户体验
+
+## 🚀 技术栈
+
+- **框架**: Next.js 15.4.6 (React 19)
+- **UI 组件**: Ant Design 5.27.0
+- **样式**: Tailwind CSS 4
+- **类型检查**: TypeScript 5
+- **数据验证**: Zod 4.0.17
+- **文档处理**: docxtemplater 3.51.2
+- **云存储**: Vercel Blob
+- **文件处理**: JSZip, file-saver
+
+## 📦 快速开始
+
+### 环境要求
+
+- Node.js 18+
+- npm/yarn/pnpm/bun
+
+### 安装依赖
+
+```bash
+npm install
+# 或
+yarn install
+# 或
+pnpm install
+# 或
+bun install
+```
+
+### 启动开发服务器
 
 ```bash
 npm run dev
-# or
+# 或
 yarn dev
-# or
+# 或
 pnpm dev
-# or
+# 或
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 [http://localhost:3000](http://localhost:3000) 查看应用。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 构建生产版本
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm run start
+```
 
-## Learn More
+## 📖 使用指南
 
-To learn more about Next.js, take a look at the following resources:
+### 证书生成器使用
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+#### 使用本地模板
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. 选择「使用本地模板文件」选项
+2. 配置字段信息
+3. 点击生成文档
 
-## Deploy on Vercel
+#### 使用云端模板
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. 选择「使用云端模板 (Vercel Blob)」选项
+2. 在「云端模板名称」输入框中输入模板文件名（如：`template.docx`）
+3. 配置字段信息
+4. 点击生成文档
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### API 使用
+
+#### 文档生成 API
+
+```javascript
+// 使用本地模板生成 DOCX
+fetch('/api/document?format=docx&source=local', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+});
+
+// 使用云端模板生成 PDF
+fetch('/api/document?format=pdf&source=cloud&template=my-template.docx', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+});
+```
+
+#### 请求参数
+
+- **format**: 输出格式，可选值为 `docx` 或 `pdf`，默认为 `docx`
+- **source**: 模板来源，可选值为 `local` 或 `cloud`，默认为 `local`
+- **template**: 可选参数，当 source 为 `cloud` 时指定云端模板文件名
+
+## 🏗️ 项目结构
+
+```text
+├── src/
+│   ├── app/                 # Next.js App Router
+│   │   ├── api/             # API 路由
+│   │   ├── certificate/     # 证书生成页面
+│   │   ├── batch/           # 批量处理页面
+│   │   └── templates/       # 模板管理页面
+│   ├── components/          # React 组件
+│   │   ├── CertificateGenerator.tsx
+│   │   ├── HomePage.tsx
+│   │   └── Navigation.tsx
+│   ├── constants/           # 常量定义
+│   └── utils/               # 工具函数
+├── public/
+│   └── word/                # 本地模板文件
+├── doc/                     # 项目文档
+│   ├── PROJECT_INTRODUCTION.md
+│   ├── README_BLOB_USAGE.md
+│   └── README_CERTIFICATE_GENERATOR.md
+└── ...
+```
+
+## 🔧 配置说明
+
+### 环境变量
+
+创建 `.env.local` 文件并配置以下变量：
+
+```env
+# Vercel Blob 配置（可选）
+BLOB_READ_WRITE_TOKEN=your_blob_token
+```
+
+### 模板文件
+
+- **本地模板**: 放置在 `public/word/` 目录下
+- **云端模板**: 上传到 Vercel Blob 存储
+- **模板格式**: 支持 `.docx` 格式，使用 `{{字段名}}` 作为占位符
+
+## 🎯 技术创新点
+
+### 混合模板架构
+
+- **双模式支持**: 同时支持本地模板和云端模板，提供灵活的部署选择
+- **智能回退机制**: 云端模板获取失败时自动回退到本地模板
+- **动态模板解析**: 实时解析模板文件中的占位符，自动生成表单
+
+### 类型安全的数据处理
+
+- **Zod 校验**: 强类型的数据验证，确保数据完整性
+- **TypeScript 全覆盖**: 端到端的类型安全保障
+- **动态表单生成**: 根据模板字段动态生成验证规则
+
+## 📚 详细文档
+
+- [项目详细介绍](./doc/PROJECT_INTRODUCTION.md)
+- [Vercel Blob 使用说明](./doc/README_BLOB_USAGE.md)
+- [证书生成器组件说明](./doc/README_CERTIFICATE_GENERATOR.md)
+
+## 🚀 部署
+
+### Vercel 部署
+
+最简单的部署方式是使用 [Vercel 平台](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme)。
+
+查看 [Next.js 部署文档](https://nextjs.org/docs/app/building-your-application/deploying) 了解更多详情。
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request 来帮助改进项目。
+
+## 📄 许可证
+
+本项目采用 MIT 许可证。
+
+## 🔗 相关链接
+
+- [Next.js 文档](https://nextjs.org/docs)
+- [Ant Design 文档](https://ant.design/)
+- [Tailwind CSS 文档](https://tailwindcss.com/docs)
+- [Vercel Blob 文档](https://vercel.com/docs/storage/vercel-blob)
