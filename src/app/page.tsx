@@ -10,6 +10,7 @@
  */
 'use client';
 
+
 import FeatureCard from '../components/ui/FeatureCard';
 
 const FEATURES = [
