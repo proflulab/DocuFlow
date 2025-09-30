@@ -7,17 +7,20 @@ import { saveAs } from 'file-saver';
 import { z } from 'zod';
 import { FieldConfig, CloudTemplate } from '../../types';
 import { createFormSchema } from '../../utils/validation';
+import { getFileFromCache } from '../../utils/localCache';
 
 interface DocumentGeneratorProps {
     fields: FieldConfig[];
     formData: Record<string, string | number | boolean | null | undefined>;
-    cloudTemplateName: string;
+    templateId: string;
+    templateSource: string;
 }
 
 export default function DocumentGenerator({
     fields,
     formData,
-    cloudTemplateName
+    templateId,
+    templateSource
 }: DocumentGeneratorProps) {
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -93,10 +96,24 @@ export default function DocumentGenerator({
             // 添加数据字段
             formDataToSend.append('data', JSON.stringify(data));
 
-            // 添加模板文件
-            if (cloudTemplateName.trim()) {
-                const templateFile = await getCloudTemplate(cloudTemplateName);
-                formDataToSend.append('template', templateFile);
+            formDataToSend.append('templateSource', templateSource);
+            if (templateSource === 'local') {
+                if (!templateId) {
+                    message.error('缺少本地模板ID');
+                    return;
+                }
+                const templateFile = await getFileFromCache(templateId);
+                if (!templateFile) {
+                    message.error('本地模板文件未找到，请重新上传');
+                    return;
+                }
+                formDataToSend.append('templateFile', templateFile);
+            } else {
+                if (!templateId) {
+                    message.error('缺少模板ID');
+                    return;
+                }
+                formDataToSend.append('templateId', templateId);
             }
 
             const response = await fetch(`/api/document?format=${format}`, {
