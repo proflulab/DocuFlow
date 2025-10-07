@@ -5,19 +5,22 @@ import { Button, Card, Space, message } from 'antd';
 import { DownloadOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { saveAs } from 'file-saver';
 import { z } from 'zod';
-import { FieldConfig, CloudTemplate } from '../../types';
+import { FieldConfig } from '../../types';
 import { createFormSchema } from '../../utils/validation';
+import { getFileFromCache } from '../../utils/localCache';
 
 interface DocumentGeneratorProps {
     fields: FieldConfig[];
     formData: Record<string, string | number | boolean | null | undefined>;
-    cloudTemplateName: string;
+    templateId: string;
+    templateSource: string;
 }
 
 export default function DocumentGenerator({
     fields,
     formData,
-    cloudTemplateName
+    templateId,
+    templateSource
 }: DocumentGeneratorProps) {
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -53,26 +56,26 @@ export default function DocumentGenerator({
     };
 
     // 获取云端模板文件
-    const getCloudTemplate = async (templateName: string) => {
-        const templatesResponse = await fetch('/api/templates');
-        const templatesResult = await templatesResponse.json();
+    // const getCloudTemplate = async (templateName: string) => {
+    //     const templatesResponse = await fetch('/api/templates');
+    //     const templatesResult = await templatesResponse.json();
 
-        if (!templatesResult.success) {
-            throw new Error('获取模板列表失败');
-        }
+    //     if (!templatesResult.success) {
+    //         throw new Error('获取模板列表失败');
+    //     }
 
-        const selectedTemplate = templatesResult.templates.find((t: CloudTemplate) => t.name === templateName.trim());
-        if (!selectedTemplate) {
-            throw new Error(`模板文件 "${templateName}" 不存在`);
-        }
+    //     const selectedTemplate = templatesResult.templates.find((t: CloudTemplate) => t.name === templateName.trim());
+    //     if (!selectedTemplate) {
+    //         throw new Error(`模板文件 "${templateName}" 不存在`);
+    //     }
 
-        const templateResponse = await fetch(selectedTemplate.url);
-        const templateBlob = await templateResponse.blob();
+    //     const templateResponse = await fetch(selectedTemplate.url);
+    //     const templateBlob = await templateResponse.blob();
 
-        return new File([templateBlob], templateName.trim(), {
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        });
-    };
+    //     return new File([templateBlob], templateName.trim(), {
+    //         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    //     });
+    // };
 
     // 通用文档生成函数
     const generateDocument = async (format: 'docx' | 'pdf') => {
@@ -93,10 +96,24 @@ export default function DocumentGenerator({
             // 添加数据字段
             formDataToSend.append('data', JSON.stringify(data));
 
-            // 添加模板文件
-            if (cloudTemplateName.trim()) {
-                const templateFile = await getCloudTemplate(cloudTemplateName);
-                formDataToSend.append('template', templateFile);
+            formDataToSend.append('templateSource', templateSource);
+            if (templateSource === 'local') {
+                if (!templateId) {
+                    message.error('缺少本地模板ID');
+                    return;
+                }
+                const templateFile = await getFileFromCache(templateId);
+                if (!templateFile) {
+                    message.error('本地模板文件未找到，请重新上传');
+                    return;
+                }
+                formDataToSend.append('templateFile', templateFile);
+            } else {
+                if (!templateId) {
+                    message.error('缺少模板ID');
+                    return;
+                }
+                formDataToSend.append('templateId', templateId);
             }
 
             const response = await fetch(`/api/document?format=${format}`, {
