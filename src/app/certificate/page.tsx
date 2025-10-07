@@ -22,7 +22,7 @@ import { FIELD_TYPES, DEFAULT_FIELDS } from '../../constants/fields';
 import { CURRENCY_OPTIONS } from '../../constants/currencies';
 import { FieldConfig, CloudTemplate } from '../../types';
 import { inferFieldType } from '../../utils/fieldTypeInference';
-import TemplateUploader from '../../components/generators/TemplateUploader';
+// import TemplateUploader from '../../components/generators/TemplateUploader';
 import { getCachedFilesMetadata, getFileFromCache, CachedFile } from '../../utils/localCache';
 
 
@@ -335,7 +335,7 @@ export default function CertificatePage() {
                 return (
                     <DatePicker
                         value={formData[field.name] ? dayjs(formData[field.name] as string) : null}
-                        onChange={(date, dateString) => setFormData(prev => ({ ...prev, [field.name]: dateString as string }))}
+                        onChange={(_, dateString) => setFormData(prev => ({ ...prev, [field.name]: dateString as string }))}
                         className="w-full"
                         placeholder={`选择${field.name}`}
                         size="small"

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
 import formidable from 'formidable';
-import { getTemplateFields, generateDocxBuffer } from '../../../../services/docxTemplateService';
+import {  generateDocxBuffer } from '../../../../services/docxTemplateService';
 import { getFileFromCache } from '../../../../utils/localCache';
 
 export const config = {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
       // Convert formidable.File to standard File object
       const fileBuffer = await fs.readFile(uploadedFile.filepath);
-      templateFile = new File([fileBuffer], uploadedFile.originalFilename || 'template.docx', {
+      templateFile = new File([new Uint8Array(fileBuffer)], uploadedFile.originalFilename || 'template.docx', {
         type: uploadedFile.mimetype || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         lastModified: uploadedFile.mtime?.getTime(),
       });
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
     // Generate document
     const generatedDocBuffer = await generateDocxBuffer(fields, templateFileBuffer, 'buffer');
 
-    return new NextResponse(generatedDocBuffer, {
+    return new NextResponse(new Uint8Array(generatedDocBuffer), {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': 'attachment; filename="generated_document.docx"',

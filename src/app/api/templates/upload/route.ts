@@ -11,14 +11,14 @@ export const config = {
 };
 
 export async function POST(req: NextRequest) {
-  return new Promise<NextResponse>((resolve, reject) => {
+  return new Promise<NextResponse>((resolve) => {
     const form = formidable({
       uploadDir: path.join(process.cwd(), 'uploads'), // Temporary directory for uploads
       keepExtensions: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB limit
     });
 
-    form.parse(req as any, async (err, fields, files) => {
+    form.parse(req as any, async (err, _, files) => {
       if (err) {
         console.error('Error parsing form data:', err);
         return resolve(NextResponse.json({ error: 'Error uploading file' }, { status: 500 }));

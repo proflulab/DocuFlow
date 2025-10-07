@@ -5,7 +5,7 @@ import { Button, Card, Space, message } from 'antd';
 import { DownloadOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { saveAs } from 'file-saver';
 import { z } from 'zod';
-import { FieldConfig, CloudTemplate } from '../../types';
+import { FieldConfig } from '../../types';
 import { createFormSchema } from '../../utils/validation';
 import { getFileFromCache } from '../../utils/localCache';
 
