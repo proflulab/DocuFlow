@@ -115,3 +115,5 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: '文档生成失败' }, { status: 500 });
   }
 }
+
+
