@@ -56,26 +56,26 @@ export default function DocumentGenerator({
     };
 
     // 获取云端模板文件
-    const getCloudTemplate = async (templateName: string) => {
-        const templatesResponse = await fetch('/api/templates');
-        const templatesResult = await templatesResponse.json();
+    // const getCloudTemplate = async (templateName: string) => {
+    //     const templatesResponse = await fetch('/api/templates');
+    //     const templatesResult = await templatesResponse.json();
 
-        if (!templatesResult.success) {
-            throw new Error('获取模板列表失败');
-        }
+    //     if (!templatesResult.success) {
+    //         throw new Error('获取模板列表失败');
+    //     }
 
-        const selectedTemplate = templatesResult.templates.find((t: CloudTemplate) => t.name === templateName.trim());
-        if (!selectedTemplate) {
-            throw new Error(`模板文件 "${templateName}" 不存在`);
-        }
+    //     const selectedTemplate = templatesResult.templates.find((t: CloudTemplate) => t.name === templateName.trim());
+    //     if (!selectedTemplate) {
+    //         throw new Error(`模板文件 "${templateName}" 不存在`);
+    //     }
 
-        const templateResponse = await fetch(selectedTemplate.url);
-        const templateBlob = await templateResponse.blob();
+    //     const templateResponse = await fetch(selectedTemplate.url);
+    //     const templateBlob = await templateResponse.blob();
 
-        return new File([templateBlob], templateName.trim(), {
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        });
-    };
+    //     return new File([templateBlob], templateName.trim(), {
+    //         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    //     });
+    // };
 
     // 通用文档生成函数
     const generateDocument = async (format: 'docx' | 'pdf') => {

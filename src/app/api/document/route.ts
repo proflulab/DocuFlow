@@ -80,7 +80,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
 
         const templateSource = Array.isArray(fields.templateSource) ? fields.templateSource[0] : fields.templateSource || 'upload';
-        const templateId = Array.isArray(fields.templateId) ? fields.templateId[0] : fields.templateId;
+        // const templateId = Array.isArray(fields.templateId) ? fields.templateId[0] : fields.templateId;
 
         let templateBuffer: Buffer;
 
