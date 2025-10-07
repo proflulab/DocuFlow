@@ -4,6 +4,7 @@ import path from 'path';
 import formidable from 'formidable';
 import {  generateDocxBuffer } from '../../../../services/docxTemplateService';
 import { getFileFromCache } from '../../../../utils/localCache';
+import { Readable } from "stream";
 
 export const config = {
   api: {
@@ -20,6 +21,22 @@ export async function POST(req: NextRequest) {
     let fields: { [key: string]: string } = {};
 
     if (contentType && contentType.includes('multipart/form-data')) {
+      const buffer = await req.arrayBuffer();
+      const readable = Readable.from(Buffer.from(buffer));
+
+      const mockRequest = Object.assign(readable, {
+          headers: Object.fromEntries(req.headers.entries()),
+          method: req.method,
+          url: req.url,
+          httpVersion: '1.1',
+          httpVersionMajor: 1,
+          httpVersionMinor: 1,
+          complete: true,
+          connection: null,
+          socket: null,
+          aborted: false,
+      });
+
       // Handle file upload (new template)
       const form = formidable({
         uploadDir: path.join(process.cwd(), './tmp'),
@@ -28,7 +45,7 @@ export async function POST(req: NextRequest) {
       });
 
       const [fieldsData, filesData] = await new Promise<[formidable.Fields<string>, formidable.Files<string>]>((resolve, reject) => {
-        form.parse(req as any, (err, fields, files) => {
+        form.parse(mockRequest as unknown as Parameters<typeof form.parse>[0], (err, fields, files) => {
           if (err) return reject(err);
           resolve([fields, files]);
         });

@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import formidable from 'formidable';
 import { getTemplateFields } from '../../../../services/docxTemplateService';
+import { Readable } from "stream";
 
 export const config = {
   api: {
@@ -11,14 +12,30 @@ export const config = {
 };
 
 export async function POST(req: NextRequest) {
-  return new Promise<NextResponse>((resolve) => {
+  return new Promise<NextResponse>(async (resolve) => {
     const form = formidable({
       uploadDir: path.join(process.cwd(), 'uploads'), // Temporary directory for uploads
       keepExtensions: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB limit
     });
 
-    form.parse(req as any, async (err, _, files) => {
+    const buffer = await req.arrayBuffer();
+    const readable = Readable.from(Buffer.from(buffer));
+
+    const mockRequest = Object.assign(readable, {
+        headers: Object.fromEntries(req.headers.entries()),
+        method: req.method,
+        url: req.url,
+        httpVersion: '1.1',
+        httpVersionMajor: 1,
+        httpVersionMinor: 1,
+        complete: true,
+        connection: null,
+        socket: null,
+        aborted: false,
+    });
+
+    form.parse(mockRequest as unknown as Parameters<typeof form.parse>[0], async (err, _, files) => {
       if (err) {
         console.error('Error parsing form data:', err);
         return resolve(NextResponse.json({ error: 'Error uploading file' }, { status: 500 }));
