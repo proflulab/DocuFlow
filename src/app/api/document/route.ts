@@ -61,7 +61,6 @@ export async function POST(request: Request): Promise<NextResponse> {
 
         // 获取 data 参数并解析为 JSON
         const dataString = Array.isArray(fields.data) ? fields.data[0] : fields.data;
-
         if (!dataString) {
             return new NextResponse(JSON.stringify({ error: "缺少 data 参数" }), {
                 status: 400,
@@ -79,30 +78,17 @@ export async function POST(request: Request): Promise<NextResponse> {
             });
         }
 
-        const templateSource = Array.isArray(fields.templateSource) ? fields.templateSource[0] : fields.templateSource || 'upload';
-        // const templateId = Array.isArray(fields.templateId) ? fields.templateId[0] : fields.templateId;
-
-        let templateBuffer: Buffer;
-
-        if (templateSource === 'local') {
-            const templateFile = Array.isArray(files.templateFile) ? files.templateFile[0] : files.templateFile;
-            if (!templateFile) {
-                return new NextResponse(JSON.stringify({ error: "缺少本地模板文件" }), {
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
-                });
-            }
-            templateBuffer = await fs.promises.readFile(templateFile.filepath);
-        } else {
-            const templateFile = Array.isArray(files.template) ? files.template[0] : files.template;
-            if (!templateFile) {
-                return new NextResponse(JSON.stringify({ error: "缺少模板文件" }), {
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
-                });
-            }
-            templateBuffer = await fs.promises.readFile(templateFile.filepath);
+        // 获取上传的模板文件
+        const templateFile = Array.isArray(files.template) ? files.template[0] : files.template;
+        if (!templateFile) {
+            return new NextResponse(JSON.stringify({ error: "缺少模板文件" }), {
+                status: 400,
+                headers: { "Content-Type": "application/json" },
+            });
         }
+
+        // 读取模板文件内容
+        const templateBuffer = await fs.promises.readFile(templateFile.filepath);
 
         // 生成DOCX文档
         const docBuffer = await generateDocxBuffer(data, templateBuffer, 'buffer');
@@ -213,20 +199,3 @@ const formatHandlers: Record<SupportedFormat, FormatHandler> = {
         },
     },
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
