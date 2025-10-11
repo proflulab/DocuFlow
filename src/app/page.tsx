@@ -11,20 +11,12 @@
 'use client';
 
 import FeatureCard from '../components/ui/FeatureCard';
-
-
-
 const FEATURES = [
   { label: '动态字段配置', color: 'bg-green-500' },
   { label: '云端模板存储', color: 'bg-blue-500' },
   { label: '类型安全处理', color: 'bg-orange-500' },
   { label: '多格式输出', color: 'bg-orange-500' }
 ];
-
-
-
-
-
 const FEATURE_CARDS = [
   {
     title: '动态文档生成器',
@@ -96,5 +88,3 @@ export default function Home() {
     </div>
   );
 }
-//test by hxj
-//1
