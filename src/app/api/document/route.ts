@@ -9,13 +9,80 @@
  * Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { convertDocxToPdf } from "@/services/pdfConverter";
 import { convertDocxToImage } from "@/services/imageConverter";
 import { generateDocxBuffer, type DocumentData } from "@/services/docxTemplateService";
 import formidable from "formidable";
 import { Readable } from "stream";
 import fs from "fs";
+
+// APYHub API 配置
+const APYHUB_API_TOKEN = "APY086wFzCUtVkJ9WIPcg8jHo6YCPVZoYJWwyoD4WfQogGyfwR7xJftLFKbvTWrx";
+const APYHUB_API_URL = "https://api.apyhub.com/convert/word-file/pdf-file";
+
+// 使用 APYHub API 转换 DOCX 到 PDF
+async function convertDocxToPdfWithAPYHub(docBuffer: Buffer): Promise<Buffer> {
+    try {
+        console.log('🚀 [APYHub] 开始 APYHub PDF 转换，文档大小:', docBuffer.length, 'bytes');
+        console.log('🚀 [APYHub] API Token:', APYHUB_API_TOKEN ? '已配置' : '未配置');
+        console.log('🚀 [APYHub] API URL:', APYHUB_API_URL);
+        
+        const formData = new FormData();
+        
+        // 创建 Blob 对象并添加到 FormData
+        const blob = new Blob([new Uint8Array(docBuffer)], { 
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+        });
+        formData.append('file', blob, 'document.docx');
+
+        console.log('🚀 [APYHub] 发送请求到 APYHub API...');
+        const response = await fetch(`${APYHUB_API_URL}?output=converted.pdf&landscape=false`, {
+            method: 'POST',
+            headers: {
+                'apy-token': APYHUB_API_TOKEN,
+            },
+            body: formData,
+        });
+
+        console.log('🚀 [APYHub] API 响应状态:', response.status, response.statusText);
+        console.log('🚀 [APYHub] 响应头:', Object.fromEntries(response.headers.entries()));
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('🚀 [APYHub] API 错误响应:', errorText);
+            throw new Error(`APYHub API 请求失败: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+
+        // 检查响应内容类型
+        const contentType = response.headers.get('content-type');
+        console.log('🚀 [APYHub] 响应内容类型:', contentType);
+        
+        if (!contentType || !contentType.includes('application/pdf')) {
+            console.warn('🚀 [APYHub] 警告：响应内容类型不是 PDF:', contentType);
+        }
+
+        const pdfBuffer = await response.arrayBuffer();
+        console.log('🚀 [APYHub] 接收到 PDF 数据，大小:', pdfBuffer.byteLength, 'bytes');
+        
+        // 验证 PDF 文件头
+        const buffer = Buffer.from(pdfBuffer);
+        const pdfHeader = buffer.subarray(0, 4).toString();
+        console.log('🚀 [APYHub] PDF 文件头:', pdfHeader);
+        
+        if (!pdfHeader.startsWith('%PDF')) {
+            console.error('🚀 [APYHub] 错误：返回的数据不是有效的 PDF 文件');
+            console.log('🚀 [APYHub] 前 100 字节:', buffer.subarray(0, 100).toString());
+            throw new Error('APYHub API 返回的不是有效的 PDF 文件');
+        }
+
+        console.log('🚀 [APYHub] PDF 转换成功完成！');
+        return buffer;
+    } catch (error) {
+        console.error('🚀 [APYHub] PDF 转换失败:', error);
+        throw new Error(`APYHub PDF 转换失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+}
 
 // 定义支持的格式类型
 type SupportedFormat = 'docx' | 'pdf' | 'png' | 'jpg' | 'jpeg';
@@ -27,7 +94,7 @@ interface FormatHandler {
     process: (docBuffer: Buffer) => Promise<Buffer>;
 }
 
-export async function POST(request: Request): Promise<NextResponse> {
+export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         // 创建一个可读流来模拟 IncomingMessage
         const buffer = await request.arrayBuffer();
@@ -56,8 +123,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
         const [fields, files] = await form.parse(mockRequest);
 
-        // 获取 format 参数，默认为 docx
-        const format = Array.isArray(fields.format) ? fields.format[0] : fields.format || 'docx';
+        // 从 URL 查询参数获取 format 参数，默认为 docx
+        const url = new URL(request.url);
+        const format = url.searchParams.get('format') || 'docx';
+        console.log('🔍 [DEBUG] 接收到的 format 参数:', format);
 
         // 获取 data 参数并解析为 JSON
         const dataString = Array.isArray(fields.data) ? fields.data[0] : fields.data;
@@ -127,8 +196,22 @@ export async function POST(request: Request): Promise<NextResponse> {
         const handler = formatHandlers[normalizedFormat];
 
         try {
+            console.log(`开始处理 ${format.toUpperCase()} 格式转换...`);
+            
             // 使用对应的处理器处理文档
             const processedBuffer = await handler.process(docBuffer);
+
+            console.log(`${format.toUpperCase()} 转换成功，输出文件大小:`, processedBuffer.length, 'bytes');
+
+            // 对于 PDF 格式，额外验证文件完整性
+            if (normalizedFormat === 'pdf') {
+                const pdfHeader = processedBuffer.subarray(0, 4).toString();
+                if (!pdfHeader.startsWith('%PDF')) {
+                    console.error('错误：生成的 PDF 文件头无效:', pdfHeader);
+                    throw new Error('生成的 PDF 文件无效');
+                }
+                console.log('PDF 文件验证通过，文件头:', pdfHeader);
+            }
 
             return new NextResponse(new Uint8Array(processedBuffer), {
                 headers: {
@@ -138,8 +221,16 @@ export async function POST(request: Request): Promise<NextResponse> {
             });
         } catch (error) {
             console.error(`${format.toUpperCase()} 转换失败:`, error);
+            
+            // 返回更详细的错误信息
+            const errorMessage = error instanceof Error ? error.message : `${format.toUpperCase()} 转换失败`;
+            
             return new NextResponse(
-                JSON.stringify({ error: `${format.toUpperCase()} 转换失败` }),
+                JSON.stringify({ 
+                    error: errorMessage,
+                    format: format,
+                    timestamp: new Date().toISOString()
+                }),
                 {
                     status: 500,
                     headers: { "Content-Type": "application/json" },
@@ -148,7 +239,16 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
     } catch (error) {
         console.error("文档生成失败:", error);
-        return new NextResponse(JSON.stringify({ error: "文档生成失败" }), {
+        
+        // 返回更详细的错误信息
+        const errorMessage = error instanceof Error ? error.message : "文档生成失败";
+        const errorDetails = {
+            error: errorMessage,
+            timestamp: new Date().toISOString(),
+            stack: error instanceof Error ? error.stack : undefined
+        };
+        
+        return new NextResponse(JSON.stringify(errorDetails), {
             status: 500,
             headers: { "Content-Type": "application/json" },
         });
@@ -168,11 +268,26 @@ const formatHandlers: Record<SupportedFormat, FormatHandler> = {
         contentType: 'application/pdf',
         fileExtension: 'pdf',
         process: async (docBuffer: Buffer) => {
+            console.log('开始 PDF 转换流程，文档大小:', docBuffer.length, 'bytes');
+            
             try {
-                return await convertDocxToPdf(docBuffer);
+                // 使用 APYHub API 进行 PDF 转换
+                console.log('尝试使用 APYHub API 进行 PDF 转换...');
+                const result = await convertDocxToPdfWithAPYHub(docBuffer);
+                console.log('APYHub API 转换成功，PDF 大小:', result.length, 'bytes');
+                return result;
             } catch (error) {
-                console.error('PDF 转换失败:', error);
-                throw new Error('PDF 转换失败');
+                console.error('APYHub API PDF 转换失败，尝试使用备用方法:', error);
+                // 如果 APYHub API 失败，回退到原有的转换方法
+                try {
+                    console.log('使用备用 PDF 转换方法...');
+                    const fallbackResult = await convertDocxToPdf(docBuffer);
+                    console.log('备用方法转换成功，PDF 大小:', fallbackResult.length, 'bytes');
+                    return fallbackResult;
+                } catch (fallbackError) {
+                    console.error('备用 PDF 转换也失败:', fallbackError);
+                    throw new Error(`PDF 转换失败: APYHub API 错误 - ${error instanceof Error ? error.message : '未知错误'}; 备用方法错误 - ${fallbackError instanceof Error ? fallbackError.message : '未知错误'}`);
+                }
             }
         },
     },
