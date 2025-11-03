@@ -51,8 +51,12 @@ export default function CertificatePage() {
 
             if (result.success) {
                 setCloudTemplates(result.templates);
-                // 如果当前选择的模板不在列表中，清空选择
-                if (cloudTemplateName && !result.templates.some((t: CloudTemplate) => t.name === cloudTemplateName)) {
+                // 仅在使用云端模板来源时，根据云端列表校验并清空当前选择
+                if (
+                    templateSource === 'blob' &&
+                    cloudTemplateName &&
+                    !result.templates.some((t: CloudTemplate) => t.name === cloudTemplateName)
+                ) {
                     setCloudTemplateName('');
                 }
             } else {
@@ -66,7 +70,7 @@ export default function CertificatePage() {
         } finally {
             setIsLoadingTemplates(false);
         }
-    }, [cloudTemplateName]);
+    }, [cloudTemplateName, templateSource]);
 
     // 组件初始化时获取云端模板列表
     React.useEffect(() => {
