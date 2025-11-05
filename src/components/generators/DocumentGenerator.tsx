@@ -9,6 +9,12 @@ import { FieldConfig } from '../../types';
 import { createFormSchema } from '../../utils/validation';
 import { getFileFromCache } from '../../utils/localCache';
 
+// 模板列表项类型（来自 /api/templates 返回的数据）
+type TemplateListItem = {
+    name: string;
+    url: string;
+};
+
 interface DocumentGeneratorProps {
     fields: FieldConfig[];
     formData: Record<string, string | number | boolean | null | undefined>;
@@ -59,13 +65,19 @@ export default function DocumentGenerator({
     const getCloudTemplate = async (templateName: string) => {
         try {
             const templatesResponse = await fetch('/api/templates');
-            const templatesResult = await templatesResponse.json();
+            const templatesResult = (await templatesResponse.json()) as {
+                success: boolean;
+                templates: TemplateListItem[];
+                message?: string;
+            };
 
             if (!templatesResult.success) {
                 throw new Error(templatesResult.message || '获取模板列表失败');
             }
 
-            const selectedTemplate = templatesResult.templates.find((t: any) => t.name === templateName.trim());
+            const selectedTemplate = templatesResult.templates.find(
+                (t) => t.name === templateName.trim()
+            );
             if (!selectedTemplate) {
                 throw new Error(`模板文件 "${templateName}" 不存在`);
             }
