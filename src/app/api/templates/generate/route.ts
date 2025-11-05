@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import formidable from 'formidable';
 import {  generateDocxBuffer } from '../../../../services/docxTemplateService';
-import { getFileFromCache } from '../../../../utils/localCache';
+// 移除对浏览器端缓存工具的依赖，改为服务器端读取（已在上方导入 fs 和 path）
 import { Readable } from "stream";
 
 export const config = {
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       await fs.unlink(uploadedFile.filepath);
 
     } else if (contentType && contentType.includes('application/json')) {
-      // Handle cached template (templateId and fields in JSON body)
+      // 服务器端模板：从服务器文件系统或可访问URL获取模板
       const body = await req.json();
       templateId = body.templateId;
       fields = body.fields || {};
@@ -83,11 +83,47 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: '未提供模板ID' }, { status: 400 });
       }
 
-      const cached = await getFileFromCache(templateId);
-      if (!cached) {
-        return NextResponse.json({ error: '未找到缓存模板' }, { status: 404 });
+      // 支持三种形式：
+      // 1) 绝对路径（如 /.../templates/xxx.docx）
+      // 2) 服务器模板文件名（保存在 process.cwd()/templates 下）
+      // 3) 可访问的URL（http/https），将其下载为文件
+      let fileBuffer: Buffer | null = null;
+      let filename: string = 'template.docx';
+
+      try {
+        if (templateId.startsWith('http://') || templateId.startsWith('https://')) {
+          const resp = await fetch(templateId);
+          if (!resp.ok) {
+            return NextResponse.json({ error: `下载模板失败: ${resp.statusText}` }, { status: resp.status });
+          }
+          const arr = await resp.arrayBuffer();
+          fileBuffer = Buffer.from(arr);
+          try {
+            const urlObj = new URL(templateId);
+            filename = path.basename(urlObj.pathname) || filename;
+          } catch {}
+        } else {
+          // 路径或文件名
+          const resolvedPath = templateId.startsWith('/')
+            ? templateId
+            : path.join(process.cwd(), 'templates', templateId);
+
+          // 读取服务器上的模板文件
+          fileBuffer = await fs.readFile(resolvedPath);
+          filename = path.basename(resolvedPath);
+        }
+      } catch (e) {
+        console.error('读取服务器模板失败:', e);
+        return NextResponse.json({ error: '未找到服务器模板' }, { status: 404 });
       }
-      templateFile = cached;
+
+      if (!fileBuffer) {
+        return NextResponse.json({ error: '无法加载服务器模板' }, { status: 400 });
+      }
+
+      templateFile = new File([new Uint8Array(fileBuffer)], filename, {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      });
 
     } else {
       return NextResponse.json({ error: '不支持的Content-Type' }, { status: 400 });

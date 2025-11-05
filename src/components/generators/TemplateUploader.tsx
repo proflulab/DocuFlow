@@ -147,7 +147,7 @@ const TemplateUploader: React.FC = () => {
     setLoading(true);
     setMessage('正在生成文档...');
 
-    let templateData: FormData | { templateId: string; } | null = null;
+    let templateData: FormData | null = null;
 
     if (templateSource === 'upload') {
       if (!selectedFile) {
@@ -163,7 +163,14 @@ const TemplateUploader: React.FC = () => {
         setLoading(false);
         return;
       }
-      templateData = { templateId: selectedCachedTemplateId };
+      const cachedFile = await getFileFromCache(selectedCachedTemplateId);
+      if (!cachedFile) {
+        setMessage('未能从缓存中找到该模板。');
+        setLoading(false);
+        return;
+      }
+      templateData = new FormData();
+      templateData.append('template', cachedFile);
     } else {
       setMessage('请选择模板来源。');
       setLoading(false);
@@ -171,10 +178,16 @@ const TemplateUploader: React.FC = () => {
     }
 
     try {
+      // 附加字段到表单，服务端将从 form-data 中解析
+      if (templateData) {
+        for (const f of fields) {
+          templateData.append(f.name, f.value);
+        }
+      }
       const response = await fetch('/api/templates/generate', {
         method: 'POST',
-        body: templateData instanceof FormData ? templateData : JSON.stringify(templateData),
-        headers: templateData instanceof FormData ? {} : { 'Content-Type': 'application/json' },
+        body: templateData as FormData,
+        headers: {},
       });
 
       if (response.ok) {
