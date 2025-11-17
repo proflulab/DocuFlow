@@ -92,16 +92,28 @@ export async function POST(req: NextRequest) {
 
       try {
         if (templateId.startsWith('http://') || templateId.startsWith('https://')) {
-          const resp = await fetch(templateId);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+          const resp = await fetch(templateId, { signal: controller.signal });
+          clearTimeout(timeoutId);
           if (!resp.ok) {
             return NextResponse.json({ error: `下载模板失败: ${resp.statusText}` }, { status: resp.status });
           }
+          
+          // Validate content type
+          const contentType = resp.headers.get('content-type');
+          if (contentType && !contentType.includes('officedocument') && !contentType.includes('msword')) {
+            return NextResponse.json({ error: 'Invalid template file type' }, { status: 400 });
+          }
+          
           const arr = await resp.arrayBuffer();
           fileBuffer = Buffer.from(arr);
           try {
             const urlObj = new URL(templateId);
             filename = path.basename(urlObj.pathname) || filename;
-          } catch {}
+          } catch (e) {
+            console.warn('Failed to parse URL for filename:', e);
+          }
         } else {
           // 路径或文件名
           const resolvedPath = templateId.startsWith('/')
