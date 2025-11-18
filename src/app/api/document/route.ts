@@ -17,13 +17,18 @@ import formidable from "formidable";
 import { Readable } from "stream";
 import fs from "fs";
 
-// APYHub API 配置
-const APYHUB_API_TOKEN = "************************";
-const APYHUB_API_URL = "*********************";
+// APYHub API 配置 - 从环境变量获取
+const APYHUB_API_TOKEN = process.env.APYHUB_API_TOKEN;
+const APYHUB_API_URL = "https://api.apyhub.com/convert/word-file/pdf-file";
 
 // 使用 APYHub API 转换 DOCX 到 PDF
 async function convertDocxToPdfWithAPYHub(docBuffer: Buffer): Promise<Buffer> {
     try {
+        // 验证 API Token 是否配置
+        if (!APYHUB_API_TOKEN) {
+            throw new Error('APYHub API Token 未配置，请设置 APYHUB_API_TOKEN 环境变量');
+        }
+        
         console.log('🚀 [APYHub] 开始 APYHub PDF 转换，文档大小:', docBuffer.length, 'bytes');
         console.log('🚀 [APYHub] API Token:', APYHUB_API_TOKEN ? '已配置' : '未配置');
         console.log('🚀 [APYHub] API URL:', APYHUB_API_URL);
