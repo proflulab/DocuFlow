@@ -5,15 +5,9 @@ import { Button, Card, Space, message } from 'antd';
 import { DownloadOutlined, FilePdfOutlined } from '@ant-design/icons';
 import { saveAs } from 'file-saver';
 import { z } from 'zod';
-import { FieldConfig } from '../../types';
+import { FieldConfig, CloudTemplate } from '../../types';
 import { createFormSchema } from '../../utils/validation';
 import { getFileFromCache } from '../../utils/localCache';
-
-// 模板列表项类型（来自 /api/templates 返回的数据）
-type TemplateListItem = {
-    name: string;
-    url: string;
-};
 
 interface DocumentGeneratorProps {
     fields: FieldConfig[];
@@ -65,19 +59,13 @@ export default function DocumentGenerator({
     const getCloudTemplate = async (templateName: string) => {
         try {
             const templatesResponse = await fetch('/api/templates');
-            const templatesResult = (await templatesResponse.json()) as {
-                success: boolean;
-                templates: TemplateListItem[];
-                message?: string;
-            };
+            const templatesResult = await templatesResponse.json();
 
             if (!templatesResult.success) {
                 throw new Error(templatesResult.message || '获取模板列表失败');
             }
 
-            const selectedTemplate = templatesResult.templates.find(
-                (t) => t.name === templateName.trim()
-            );
+            const selectedTemplate = templatesResult.templates.find((t: CloudTemplate) => t.name === templateName.trim());
             if (!selectedTemplate) {
                 throw new Error(`模板文件 "${templateName}" 不存在`);
             }

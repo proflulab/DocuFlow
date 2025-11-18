@@ -13,8 +13,17 @@ export const config = {
 
 export async function POST(req: NextRequest) {
   return new Promise<NextResponse>(async (resolve) => {
+    // Ensure uploads directory exists
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    try {
+      await fs.access(uploadsDir);
+    } catch {
+      await fs.mkdir(uploadsDir, { recursive: true });
+      console.log(`✅ 已创建上传目录: ${uploadsDir}`);
+    }
+
     const form = formidable({
-      uploadDir: path.join(process.cwd(), 'uploads'), // Temporary directory for uploads
+      uploadDir: uploadsDir, // Temporary directory for uploads
       keepExtensions: true,
       maxFileSize: 10 * 1024 * 1024, // 10MB limit
     });

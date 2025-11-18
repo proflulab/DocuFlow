@@ -18,8 +18,8 @@ import { Readable } from "stream";
 import fs from "fs";
 
 // APYHub API 配置
-const APYHUB_API_TOKEN = "APY086wFzCUtVkJ9WIPcg8jHo6YCPVZoYJWwyoD4WfQogGyfwR7xJftLFKbvTWrx";
-const APYHUB_API_URL = "https://api.apyhub.com/convert/word-file/pdf-file";
+const APYHUB_API_TOKEN = "************************";
+const APYHUB_API_URL = "*********************";
 
 // 使用 APYHub API 转换 DOCX 到 PDF
 async function convertDocxToPdfWithAPYHub(docBuffer: Buffer): Promise<Buffer> {
@@ -120,6 +120,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             keepExtensions: true,
             maxFileSize: 10 * 1024 * 1024, // 10MB
         });
+
+        // 确保临时目录存在
+        const tmpDir = './tmp';
+        try {
+            await fs.promises.access(tmpDir);
+        } catch {
+            await fs.promises.mkdir(tmpDir, { recursive: true });
+            console.log(`✅ 已创建临时目录: ${tmpDir}`);
+        }
 
         const [fields, files] = await form.parse(mockRequest);
 
