@@ -65,8 +65,12 @@ export async function POST(req: NextRequest) {
 
       // Parse fields from form data
       for (const key in fieldsData) {
-        if (fieldsData[key] && Array.isArray(fieldsData[key])) {
-          fields[key] = fieldsData[key]?.[0] || '';
+        if (fieldsData[key]) {
+          if (Array.isArray(fieldsData[key])) {
+            fields[key] = fieldsData[key]?.[0] || '';
+          } else {
+            fields[key] = fieldsData[key] as string;
+          }
         }
       }
 
