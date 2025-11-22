@@ -3,7 +3,7 @@ import { listBlobFiles } from '@/utils/blob'
 import path from 'path'
 
 // 允许的外部下载域名白名单（可通过环境变量扩展）
-const DEFAULT_ALLOWED_DOMAINS = ['blob.vercel-storage.com', 'your-cdn.com']
+const DEFAULT_ALLOWED_DOMAINS = ['blob.vercel-storage.com']
 const ENV_ALLOWED = process.env.ALLOWED_BLOB_DOMAINS
   ? process.env.ALLOWED_BLOB_DOMAINS.split(',').map(d => d.trim()).filter(Boolean)
   : []
