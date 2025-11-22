@@ -39,6 +39,8 @@ export default function CertificatePage() {
     const [isInitialized, setIsInitialized] = useState(false);
     const [previewVisible, setPreviewVisible] = useState(false);
     const [previewTemplateUrl, setPreviewTemplateUrl] = useState<string>('');
+    const [previewTemplateBlob, setPreviewTemplateBlob] = useState<Blob | undefined>(undefined);
+    const [previewTemplateName, setPreviewTemplateName] = useState<string>('');
     const [templateSource, setTemplateSource] = useState<string>('blob');
     const [cachedTemplates, setCachedTemplates] = useState<CachedFile[]>([]);
 
@@ -531,7 +533,7 @@ export default function CertificatePage() {
                                     />
                                     <Button
                                         icon={<EyeOutlined />}
-                                        onClick={() => {
+                                        onClick={async () => {
                                             if (!cloudTemplateName) {
                                                 message.warning('请先选择一个模板');
                                                 return;
@@ -540,20 +542,30 @@ export default function CertificatePage() {
                                             if (templateSource === 'blob') {
                                                 const selectedTemplate = cloudTemplates.find(t => t.name === cloudTemplateName);
                                                 if (selectedTemplate) {
-                                                    selectedTemplateUrl = selectedTemplate.url;
+                                                    selectedTemplateUrl = `/api/templates/preview?directUrl=${encodeURIComponent(selectedTemplate.url)}&pathname=${encodeURIComponent(selectedTemplate.pathname)}&name=${encodeURIComponent(selectedTemplate.name)}`;
+                                                    setPreviewTemplateBlob(undefined);
+                                                    setPreviewTemplateName(selectedTemplate.name);
                                                 }
                                             } else if (templateSource === 'local') {
                                                 const selectedTemplate = cachedTemplates.find(t => t.id === cloudTemplateName);
                                                 if (selectedTemplate) {
-                                                    selectedTemplateUrl = `/api/templates/cached-preview?id=${selectedTemplate.id}`;
+                                                    const file = await getFileFromCache(selectedTemplate.id);
+                                                    if (!file) {
+                                                        message.error('无法从本地缓存获取模板内容');
+                                                        return;
+                                                    }
+                                                    setPreviewTemplateBlob(file);
+                                                    setPreviewTemplateName(selectedTemplate.name);
+                                                    selectedTemplateUrl = '';
                                                 }
                                             }
 
                                             if (selectedTemplateUrl) {
                                                 setPreviewTemplateUrl(selectedTemplateUrl);
                                                 setPreviewVisible(true);
-                                            } else {
-                                                message.error('无法获取模板预览地址');
+                                            } else if (previewTemplateBlob) {
+                                                setPreviewTemplateUrl('');
+                                                setPreviewVisible(true);
                                             }
                                         }}
                                         disabled={!cloudTemplateName || isLoadingTemplates}
@@ -795,7 +807,8 @@ export default function CertificatePage() {
                 visible={previewVisible}
                 onClose={() => setPreviewVisible(false)}
                 templateUrl={previewTemplateUrl}
-                templateName={cloudTemplateName}
+                templateBlob={previewTemplateBlob}
+                templateName={previewTemplateName || cloudTemplateName}
             />
         </div>
     );

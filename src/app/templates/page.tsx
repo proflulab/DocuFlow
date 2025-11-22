@@ -46,6 +46,7 @@ import {
   formatFileSize,
   isLocalCacheSupported
 } from '@/utils/localCache';
+import TemplatePreview from '@/components/preview/TemplatePreview';
 
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
@@ -68,6 +69,7 @@ export default function TemplatesPage() {
   const [uploading, setUploading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [previewName, setPreviewName] = useState('');
   const [activeTab, setActiveTab] = useState<'cloud' | 'local'>('cloud');
 
@@ -83,12 +85,12 @@ export default function TemplatesPage() {
       }
 
       const { blobs } = result.data;
-      const templates: TemplateFile[] = blobs.map((blob: { pathname: string; size: number; uploadedAt: string; url: string }) => ({
+      const templates: TemplateFile[] = blobs.map((blob: { pathname: string; size: number; uploadedAt: string; url: string; downloadUrl?: string }) => ({
         id: blob.pathname,
         name: blob.pathname.replace('templates/', ''),
         size: blob.size,
         type: 'cloud',
-        url: blob.url,
+        url: blob.downloadUrl ?? blob.url,
         uploadedAt: blob.uploadedAt,
         pathname: blob.pathname
       }));
@@ -214,13 +216,32 @@ export default function TemplatesPage() {
   };
 
   // 预览模板
-  const handlePreview = (template: TemplateFile) => {
-    if (template.type === 'cloud' && template.url) {
-      setPreviewUrl(template.url);
-      setPreviewName(template.name);
-      setPreviewVisible(true);
-    } else {
-      message.info('本地模板暂不支持在线预览');
+  const handlePreview = async (template: TemplateFile) => {
+    try {
+      if (template.type === 'cloud' && template.url) {
+        // 使用服务端代理路由，优先传递 downloadUrl
+        const proxyUrl = `/api/templates/preview?url=${encodeURIComponent(template.url)}&pathname=${encodeURIComponent(template.pathname!)}&name=${encodeURIComponent(template.name)}`;
+        setPreviewUrl(proxyUrl);
+        setPreviewName(template.name);
+        setPreviewVisible(true);
+        return;
+      }
+
+      // 本地模板：从缓存读取文件并创建 blob URL
+      if (template.type === 'local') {
+        const file = await getFileFromCache(template.id);
+        if (!file) {
+          message.error('本地文件不存在或已损坏');
+          return;
+        }
+        setPreviewBlob(file); // 直接传递 Blob/File 给预览组件
+        setPreviewUrl('');
+        setPreviewName(file.name);
+        setPreviewVisible(true);
+      }
+    } catch (err) {
+      console.error('预览失败:', err);
+      message.error('预览失败，请重试');
     }
   };
 
@@ -320,11 +341,10 @@ export default function TemplatesPage() {
       render: (_, record) => (
         <Space>
           <Tooltip title="预览">
-            <Button
+              <Button
               type="text"
               icon={<EyeOutlined />}
               onClick={() => handlePreview(record)}
-              disabled={record.type === 'local'}
             />
           </Tooltip>
           {record.type === 'local' && (
@@ -479,28 +499,19 @@ export default function TemplatesPage() {
           </Card>
         </Card>
 
-        {/* 预览模态框 */}
-        <Modal
-          title={`预览模板: ${previewName}`}
-          open={previewVisible}
-          onCancel={() => setPreviewVisible(false)}
-          footer={[
-            <Button key="close" onClick={() => setPreviewVisible(false)}>
-              关闭
-            </Button>
-          ]}
-          width={800}
-        >
-          {previewUrl && (
-            <div className="text-center">
-              <Text type="secondary">模板文件预览</Text>
-              <div className="mt-4 p-4 bg-gray-50 rounded">
-                <Text>文件 URL: </Text>
-                <Text code copyable>{previewUrl}</Text>
-              </div>
-            </div>
-          )}
-        </Modal>
+        {/* 统一的模板预览组件（支持云端与本地 blob） */}
+        <TemplatePreview
+          visible={previewVisible}
+          onClose={() => {
+            setPreviewVisible(false);
+            setPreviewUrl('');
+            setPreviewBlob(null);
+            setPreviewName('');
+          }}
+          templateUrl={previewUrl || undefined}
+          templateBlob={previewBlob || undefined}
+          templateName={previewName}
+        />
       </main>
     </div>
   );

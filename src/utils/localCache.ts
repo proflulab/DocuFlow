@@ -11,6 +11,9 @@ export interface CachedFile {
     type: string;
     lastModified: number;
     createdAt: number;
+    serverFilePath?: string; // 服务器上的文件路径
+    serverFileName?: string; // 服务器上的文件名
+    serverTemplateId?: string; // 服务器上的模板ID
 }
 
 // IndexedDB 数据库配置
@@ -73,7 +76,14 @@ function generateFileId(): string {
 /**
  * 添加文件到本地缓存
  */
-export async function addFileToCache(file: File): Promise<string> {
+export async function addFileToCache(
+    file: File, 
+    serverInfo?: {
+        serverFilePath?: string;
+        serverFileName?: string; 
+        serverTemplateId?: string;
+    }
+): Promise<string> {
     try {
         const db = await initDB();
         const fileId = generateFileId();
@@ -85,7 +95,10 @@ export async function addFileToCache(file: File): Promise<string> {
             size: file.size,
             type: file.type,
             lastModified: file.lastModified,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            serverFilePath: serverInfo?.serverFilePath,
+            serverFileName: serverInfo?.serverFileName,
+            serverTemplateId: serverInfo?.serverTemplateId
         };
 
         // 将文件内容转换为 ArrayBuffer

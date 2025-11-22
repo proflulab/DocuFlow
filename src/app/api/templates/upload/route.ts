@@ -5,6 +5,9 @@ import formidable from 'formidable';
 import { getTemplateFields } from '../../../../services/docxTemplateService';
 import { Readable } from "stream";
 
+// 模板ID到文件名的映射存储文件
+const MAPPING_FILE = path.join(process.cwd(), 'templates', 'template_mappings.json');
+
 export const config = {
   api: {
     bodyParser: false,
@@ -68,7 +71,31 @@ export async function POST(req: NextRequest) {
         // Extract fields from the uploaded DOCX template
         const fields = await getTemplateFields(newPath, 'path');
 
-        return resolve(NextResponse.json({ message: 'File uploaded successfully', filePath: newPath, fields }));
+        // Generate a template ID for mapping
+        const templateId = `template_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // 保存模板ID到文件名的映射
+        let templateMappings: Record<string, string> = {};
+        try {
+            const mappingData = await fs.readFile(MAPPING_FILE, 'utf-8');
+            templateMappings = JSON.parse(mappingData);
+        } catch (error) {
+            console.log('模板映射文件不存在，将创建新的映射文件');
+            await fs.mkdir(path.dirname(MAPPING_FILE), { recursive: true });
+            // 创建空的映射文件
+            await fs.writeFile(MAPPING_FILE, JSON.stringify({}, null, 2));
+        }
+        
+        templateMappings[templateId] = newFileName;
+        await fs.writeFile(MAPPING_FILE, JSON.stringify(templateMappings, null, 2));
+
+        return resolve(NextResponse.json({ 
+          message: 'File uploaded successfully', 
+          filePath: newPath, 
+          fileName: newFileName,
+          templateId: templateId,
+          fields 
+        }));
       } catch (error) {
         console.error('Error processing file:', error);
         return resolve(NextResponse.json({ error: 'Error processing template' }, { status: 500 }));

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getCachedFilesMetadata, addFileToCache, getFileFromCache, CachedFile, formatFileSize } from '../../utils/localCache';
+import TemplatePreview from '../preview/TemplatePreview';
 
 interface Field {
   name: string;
@@ -18,6 +19,9 @@ const TemplateUploader: React.FC = () => {
   const [templateSource, setTemplateSource] = useState<'upload' | 'cache'>('upload'); // 'upload' or 'cache'
   const [cachedTemplates, setCachedTemplates] = useState<EnhancedCachedFile[]>([]);
   const [selectedCachedTemplateId, setSelectedCachedTemplateId] = useState<string | null>(null);
+  const [previewVisible, setPreviewVisible] = useState<boolean>(false);
+  const [previewTemplateUrl, setPreviewTemplateUrl] = useState<string>('');
+  const [previewTemplateName, setPreviewTemplateName] = useState<string>('');
 
   useEffect(() => {
     const loadCachedTemplates = async () => {
@@ -66,9 +70,13 @@ const TemplateUploader: React.FC = () => {
           value: '',
         }));
         setFields(initialFields);
-        // Add the newly uploaded file to cache
+        // Add the newly uploaded file to cache with server information
         if (selectedFile) {
-          await addFileToCache(selectedFile);
+          await addFileToCache(selectedFile, {
+            serverFilePath: data.filePath,
+            serverFileName: data.fileName,
+            serverTemplateId: data.templateId
+          });
           const updatedCachedTemplates = getCachedFilesMetadata();
           const enhancedUpdatedFiles: EnhancedCachedFile[] = updatedCachedTemplates.map(file => ({
             ...file,
@@ -85,6 +93,13 @@ const TemplateUploader: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePreview = (templateId: string, templateName: string) => {
+    const templateUrl = `/api/templates/cached-preview?id=${templateId}`;
+    setPreviewTemplateUrl(templateUrl);
+    setPreviewTemplateName(templateName);
+    setPreviewVisible(true);
   };
 
   const handleLoadCachedTemplate = async () => {
@@ -280,6 +295,18 @@ const TemplateUploader: React.FC = () => {
             ))}
           </select>
           <button
+            onClick={() => {
+              const selectedTemplate = cachedTemplates.find(t => t.id === selectedCachedTemplateId);
+              if (selectedTemplate && selectedTemplate.serverTemplateId) {
+                handlePreview(selectedTemplate.serverTemplateId, selectedTemplate.name);
+              }
+            }}
+            disabled={!selectedCachedTemplateId || loading}
+            className="mt-2 ml-2 px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 disabled:bg-gray-400"
+          >
+            预览
+          </button>
+          <button
             onClick={handleLoadCachedTemplate}
             disabled={!selectedCachedTemplateId || loading}
             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400"
@@ -317,6 +344,13 @@ const TemplateUploader: React.FC = () => {
           </button>
         </div>
       )}
+
+      <TemplatePreview
+        visible={previewVisible}
+        onClose={() => setPreviewVisible(false)}
+        templateUrl={previewTemplateUrl}
+        templateName={previewTemplateName}
+      />
     </div>
   );
 };
