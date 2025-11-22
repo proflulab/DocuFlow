@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
             const mappingData = await fs.readFile(MAPPING_FILE, 'utf-8');
             templateMappings = JSON.parse(mappingData);
         } catch (error) {
-            console.log('模板映射文件不存在，将创建新的映射文件');
+            console.log('模板映射文件不存在，将创建新的映射文件', error);
             await fs.mkdir(path.dirname(MAPPING_FILE), { recursive: true });
             // 创建空的映射文件
             await fs.writeFile(MAPPING_FILE, JSON.stringify({}, null, 2));

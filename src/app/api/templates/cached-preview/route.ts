@@ -47,7 +47,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             const mappingData = await fs.readFile(MAPPING_FILE, 'utf-8');
             templateMappings = JSON.parse(mappingData);
         } catch (error) {
-            console.log('模板映射文件不存在或格式错误，将重新创建');
+            console.log('模板映射文件不存在或格式错误，将重新创建', error);
         }
 
         // 根据模板ID查找对应的文件名

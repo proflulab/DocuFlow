@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { listBlobFiles } from '@/utils/blob'
 import path from 'path'
 
+// 最小化的 Blob 列表项类型，用于避免 any
+interface BlobListItem {
+  pathname: string
+  url: string
+  downloadUrl?: string
+}
+
 // 允许的外部下载域名白名单（可通过环境变量扩展）
 const DEFAULT_ALLOWED_DOMAINS = ['blob.vercel-storage.com']
 const ENV_ALLOWED = process.env.ALLOWED_BLOB_DOMAINS
@@ -50,8 +57,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     if (!targetUrl) {
       const dir = path.dirname(pathname)
       const prefix = dir && dir !== '.' ? `${dir}/` : undefined
-      const result = await listBlobFiles(prefix ? { prefix } : undefined)
-      const blob = result?.blobs?.find((b: any) => b.pathname === pathname)
+      const result = await listBlobFiles(prefix ? { prefix } : undefined) as { blobs?: BlobListItem[] }
+      const blob = result?.blobs?.find((b: BlobListItem) => b.pathname === pathname)
       if (!blob) {
         return NextResponse.json(
           { success: false, error: '未找到指定模板文件' },
