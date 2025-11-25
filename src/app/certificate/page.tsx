@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-16 03:16:37
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-11-24 21:07:09
+ * @LastEditTime: 2025-11-25 20:43:12
  * @FilePath: /docuflow/src/app/certificate/page.tsx
  * @Description: 
  * 
@@ -144,7 +144,9 @@ export default function CertificatePage() {
 
     // 自动配置字段
     const autoConfigureFields = async () => {
-        if (!cloudTemplateName) {
+        const isBlob = templateSource === 'blob';
+        const hasSelection = isBlob ? !!cloudTemplateName : !!localTemplateId;
+        if (!hasSelection) {
             message.warning('请先选择一个模板');
             return;
         }
@@ -153,19 +155,23 @@ export default function CertificatePage() {
         const hideLoading = message.loading('正在分析模板字段...', 0);
 
         try {
-            // 直接从已加载的cloudTemplates中找到选中的模板
-            const selectedTemplate = cloudTemplates.find((t: CloudTemplate) => t.name === cloudTemplateName);
-            if (!selectedTemplate) {
-                throw new Error('指定的模板文件不存在');
-            }
-
-            // 下载模板文件
-            const templateResponse = await fetch(selectedTemplate.url);
-            const templateBlob = await templateResponse.blob();
-
-            // 创建 FormData 并发送 POST 请求
             const formData = new FormData();
-            formData.append('template', templateBlob, cloudTemplateName);
+
+            if (isBlob) {
+                const selectedTemplate = cloudTemplates.find((t: CloudTemplate) => t.name === cloudTemplateName);
+                if (!selectedTemplate) {
+                    throw new Error('指定的模板文件不存在');
+                }
+                const templateResponse = await fetch(selectedTemplate.url);
+                const templateBlob = await templateResponse.blob();
+                formData.append('template', templateBlob, cloudTemplateName);
+            } else {
+                const file = await getFileFromCache(localTemplateId);
+                if (!file) {
+                    throw new Error('模板文件不存在或已清除');
+                }
+                formData.append('template', file);
+            }
 
             const response = await fetch('/api/template-fields', {
                 method: 'POST',
@@ -630,7 +636,7 @@ export default function CertificatePage() {
                                         size="small"
                                         icon={<SettingOutlined />}
                                         onClick={autoConfigureFields}
-                                        disabled={!cloudTemplateName || isAutoConfiguring}
+                                        disabled={isAutoConfiguring || (templateSource === 'blob' ? !cloudTemplateName : !localTemplateId)}
                                         loading={isAutoConfiguring}
                                     >
                                         {isAutoConfiguring ? '配置中...' : '自动配置'}
