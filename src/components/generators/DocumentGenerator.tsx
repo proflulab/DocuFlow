@@ -7,17 +7,22 @@ import { saveAs } from 'file-saver';
 import { z } from 'zod';
 import { FieldConfig, CloudTemplate } from '../../types';
 import { createFormSchema } from '../../utils/validation';
+import { getFileFromCache } from '../../utils/localCache';
 
 interface DocumentGeneratorProps {
     fields: FieldConfig[];
     formData: Record<string, string | number | boolean | null | undefined>;
     cloudTemplateName: string;
+    templateSource: string;
+    localTemplateId: string;
 }
 
 export default function DocumentGenerator({
     fields,
     formData,
-    cloudTemplateName
+    cloudTemplateName,
+    templateSource,
+    localTemplateId
 }: DocumentGeneratorProps) {
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -92,11 +97,30 @@ export default function DocumentGenerator({
 
             // 添加数据字段
             formDataToSend.append('data', JSON.stringify(data));
+            formDataToSend.append('format', format);
 
-            // 添加模板文件
-            if (cloudTemplateName.trim()) {
+            // 添加模板文件（支持云端与本地缓存）
+            if (templateSource === 'blob') {
+                if (!cloudTemplateName.trim()) {
+                    message.error('请先选择云端模板');
+                    return;
+                }
                 const templateFile = await getCloudTemplate(cloudTemplateName);
                 formDataToSend.append('template', templateFile);
+            } else if (templateSource === 'local') {
+                if (!localTemplateId) {
+                    message.error('请先选择本地模板');
+                    return;
+                }
+                const file = await getFileFromCache(localTemplateId);
+                if (!file) {
+                    message.error('本地模板不存在或已清除');
+                    return;
+                }
+                formDataToSend.append('template', file);
+            } else {
+                message.error('请选择有效的模板来源');
+                return;
             }
 
             const response = await fetch(`/api/document?format=${format}`, {

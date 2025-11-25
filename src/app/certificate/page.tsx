@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-16 03:16:37
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-11-25 20:43:12
+ * @LastEditTime: 2025-11-25 20:50:37
  * @FilePath: /docuflow/src/app/certificate/page.tsx
  * @Description: 
  * 
@@ -834,6 +834,8 @@ export default function CertificatePage() {
                         fields={fields}
                         formData={formData}
                         cloudTemplateName={cloudTemplateName}
+                        templateSource={templateSource}
+                        localTemplateId={localTemplateId}
                     />
                 </Card>
             </div>
