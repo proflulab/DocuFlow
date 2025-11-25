@@ -159,7 +159,7 @@ export default function CertificatePage() {
         const hideLoading = message.loading('正在分析模板字段...', 0);
 
         try {
-            let formData = new FormData();
+            const formData = new FormData();
 
             if (templateSource === 'blob') {
                 // 直接从已加载的 cloudTemplates 中找到选中的模板
