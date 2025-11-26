@@ -23,6 +23,8 @@ import { CURRENCY_OPTIONS } from '../../constants/currencies';
 import { FieldConfig, CloudTemplate } from '../../types';
 import { getCachedFilesMetadata, isLocalCacheSupported, formatFileSize, CachedFile, getFileFromCache } from '../../utils/localCache';
 import { inferFieldType } from '../../utils/fieldTypeInference';
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
 
 
 const { Title } = Typography;
@@ -159,60 +161,66 @@ export default function CertificatePage() {
         const hideLoading = message.loading('正在分析模板字段...', 0);
 
         try {
-            const formData = new FormData();
+            // 加载模板二进制
+            let arrayBuffer: ArrayBuffer;
+            let displayName = '';
 
             if (templateSource === 'blob') {
-                // 直接从已加载的 cloudTemplates 中找到选中的模板
                 const selectedTemplate = cloudTemplates.find((t: CloudTemplate) => t.name === cloudTemplateName);
                 if (!selectedTemplate) {
                     throw new Error('指定的模板文件不存在');
                 }
-
-                // 下载模板文件
                 const templateResponse = await fetch(selectedTemplate.url);
+                if (!templateResponse.ok) {
+                    throw new Error('下载云端模板失败');
+                }
                 const templateBlob = await templateResponse.blob();
-
-                // 创建 FormData（云端）
-                formData.append('template', templateBlob, cloudTemplateName);
+                arrayBuffer = await templateBlob.arrayBuffer();
+                displayName = cloudTemplateName;
             } else {
-                // 从本地缓存读取文件
                 const file = await getFileFromCache(localTemplateId);
                 if (!file) {
                     throw new Error('指定的本地模板文件不存在');
                 }
-                // 创建 FormData（本地）
-                formData.append('template', file, file.name);
+                arrayBuffer = await file.arrayBuffer();
+                displayName = file.name;
             }
 
-            const response = await fetch('/api/template-fields', {
-                method: 'POST',
-                body: formData
+            // 动态引入 inspect-module（兼容浏览器打包）
+            const InspectModuleMod = await import('docxtemplater/js/inspect-module');
+            const InspectModule = (InspectModuleMod as any).default || (InspectModuleMod as any);
+            const iModule = InspectModule();
+
+            // 使用 PizZip + Docxtemplater 解析字段
+            const zip = new PizZip(arrayBuffer);
+            new Docxtemplater(zip, {
+                paragraphLoop: true,
+                linebreaks: true,
+                modules: [iModule],
             });
-            const result = await response.json();
 
-            if (result.success && result.fields) {
-                const autoFields: FieldConfig[] = result.fields.map((fieldName: string, index: number) => ({
-                    id: `auto_${Date.now()}_${index}`,
-                    name: fieldName,
-                    type: inferFieldType(fieldName),
-                    value: '',
-                    required: false,
-                    format: {},
-                }));
+            const tagsObj = iModule.getAllTags();
+            const fieldNames = Object.keys(tagsObj);
 
-                setFields(autoFields);
-                hideLoading();
-                message.success({
-                    content: `🎉 成功自动配置 ${result.fields.length} 个字段！`,
-                    duration: 3,
-                });
-            } else {
-                hideLoading();
-                message.error({
-                    content: result.message || '❌ 获取模板字段失败，请检查模板格式',
-                    duration: 4,
-                });
+            if (!fieldNames.length) {
+                throw new Error('未在模板中检测到可用占位符');
             }
+
+            const autoFields: FieldConfig[] = fieldNames.map((fieldName: string, index: number) => ({
+                id: `auto_${Date.now()}_${index}`,
+                name: fieldName,
+                type: inferFieldType(fieldName),
+                value: '',
+                required: false,
+                format: {},
+            }));
+
+            setFields(autoFields);
+            hideLoading();
+            message.success({
+                content: `🎉 成功从「${displayName}」自动配置 ${fieldNames.length} 个字段！`,
+                duration: 3,
+            });
         } catch (error) {
             console.error('自动配置字段失败:', error);
             hideLoading();
