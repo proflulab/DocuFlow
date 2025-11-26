@@ -41,7 +41,7 @@ export default function CertificatePage() {
     const [previewVisible, setPreviewVisible] = useState(false);
     const [previewTemplateUrl, setPreviewTemplateUrl] = useState<string>('');
     const [previewTemplateName, setPreviewTemplateName] = useState<string>('');
-    const [templateSource, setTemplateSource] = useState<string>('blob');
+    const [templateSource, setTemplateSource] = useState<'blob' | 'local'>('blob');
 
     // 获取云端模板列表
     const fetchCloudTemplates = useCallback(async () => {
@@ -584,6 +584,10 @@ export default function CertificatePage() {
                                                     return;
                                                 }
                                                 try {
+                                                    // Revoke previous object URL if it exists
+                                                   if (previewTemplateUrl && previewTemplateUrl.startsWith('blob:')) {
+                                                      URL.revokeObjectURL(previewTemplateUrl);
+                                                   }
                                                     const file = await getFileFromCache(localTemplateId);
                                                     if (!file) {
                                                         message.error('未找到本地模板文件');
@@ -829,6 +833,8 @@ export default function CertificatePage() {
                         fields={fields}
                         formData={formData}
                         cloudTemplateName={cloudTemplateName}
+                        templateSource={templateSource as 'blob' | 'local'}
+                        localTemplateId={localTemplateId}
                     />
                 </Card>
             </div>

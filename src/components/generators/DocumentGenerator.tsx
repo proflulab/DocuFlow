@@ -7,17 +7,22 @@ import { saveAs } from 'file-saver';
 import { z } from 'zod';
 import { FieldConfig, CloudTemplate } from '../../types';
 import { createFormSchema } from '../../utils/validation';
+import { getFileFromCache } from '@/utils/localCache';
 
 interface DocumentGeneratorProps {
     fields: FieldConfig[];
     formData: Record<string, string | number | boolean | null | undefined>;
     cloudTemplateName: string;
+    templateSource: 'blob' | 'local';
+    localTemplateId?: string;
 }
 
 export default function DocumentGenerator({
     fields,
     formData,
-    cloudTemplateName
+    cloudTemplateName,
+    templateSource,
+    localTemplateId
 }: DocumentGeneratorProps) {
     const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
     const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
@@ -92,20 +97,45 @@ export default function DocumentGenerator({
 
             // 添加数据字段
             formDataToSend.append('data', JSON.stringify(data));
+            // 后端通过表单字段读取 format，这里同步传递
+            formDataToSend.append('format', format);
 
-            // 添加模板文件
-            if (cloudTemplateName.trim()) {
+            // 添加模板文件（支持云端与本地缓存两种来源）
+            if (templateSource === 'blob') {
+                if (!cloudTemplateName.trim()) {
+                    message.warning('请先选择云端模板');
+                    return;
+                }
                 const templateFile = await getCloudTemplate(cloudTemplateName);
                 formDataToSend.append('template', templateFile);
+            } else {
+                if (!localTemplateId) {
+                    message.warning('请先选择本地缓存模板');
+                    return;
+                }
+                const localFile = await getFileFromCache(localTemplateId);
+                if (!localFile) {
+                    message.error('本地模板不存在或已被删除');
+                    return;
+                }
+                formDataToSend.append('template', localFile);
             }
 
-            const response = await fetch(`/api/document?format=${format}`, {
+            const response = await fetch(`/api/document`, {
                 method: 'POST',
                 body: formDataToSend,
             });
 
             if (!response.ok) {
-                throw new Error(`Failed to generate document: ${response.statusText}`);
+                // 尝试解析后端错误信息
+                let msg = response.statusText;
+                try {
+                    const errJson = await response.json();
+                    msg = errJson?.error || response.statusText;
+                } catch (_) {
+                    // JSON parsing failed, keep default msg
+                }
+                throw new Error(`Failed to generate document: ${msg}`);
             }
 
             const blob = await response.blob();
