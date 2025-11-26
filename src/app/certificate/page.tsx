@@ -186,9 +186,10 @@ export default function CertificatePage() {
                 displayName = file.name;
             }
 
-            // 动态引入 inspect-module（兼容浏览器打包）
-            const InspectModuleMod = await import('docxtemplater/js/inspect-module');
-            const InspectModule = (InspectModuleMod as any).default || (InspectModuleMod as any);
+            // 动态引入 inspect-module（兼容浏览器打包），避免 any 类型
+            type InspectModuleFactory = () => { getAllTags: () => Record<string, unknown> };
+            const InspectModuleMod = (await import('docxtemplater/js/inspect-module')) as unknown as { default?: InspectModuleFactory } | InspectModuleFactory;
+            const InspectModule: InspectModuleFactory = (InspectModuleMod as { default?: InspectModuleFactory }).default ?? (InspectModuleMod as InspectModuleFactory);
             const iModule = InspectModule();
 
             // 使用 PizZip + Docxtemplater 解析字段

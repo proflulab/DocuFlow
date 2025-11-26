@@ -132,7 +132,7 @@ export default function DocumentGenerator({
                 try {
                     const errJson = await response.json();
                     msg = errJson?.error || response.statusText;
-                } catch (_) {
+                } catch {
                     // JSON parsing failed, keep default msg
                 }
                 throw new Error(`Failed to generate document: ${msg}`);
