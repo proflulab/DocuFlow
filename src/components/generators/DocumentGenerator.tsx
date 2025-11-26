@@ -8,6 +8,8 @@ import { z } from 'zod';
 import { FieldConfig, CloudTemplate } from '../../types';
 import { createFormSchema } from '../../utils/validation';
 import { getFileFromCache } from '@/utils/localCache';
+import Docxtemplater from 'docxtemplater';
+import PizZip from 'pizzip';
 
 interface DocumentGeneratorProps {
     fields: FieldConfig[];
@@ -90,6 +92,49 @@ export default function DocumentGenerator({
             const data = generateDocumentData();
             if (!data) {
                 return; // 校验失败，直接返回
+            }
+
+            // 如果生成 DOCX，直接在浏览器端渲染以提升性能
+            if (isDocx) {
+                // 获取模板文件（云端或本地）
+                let templateFile: File | null = null;
+                if (templateSource === 'blob') {
+                    if (!cloudTemplateName.trim()) {
+                        message.warning('请先选择云端模板');
+                        return;
+                    }
+                    templateFile = await getCloudTemplate(cloudTemplateName);
+                } else {
+                    if (!localTemplateId) {
+                        message.warning('请先选择本地缓存模板');
+                        return;
+                    }
+                    templateFile = await getFileFromCache(localTemplateId);
+                }
+
+                if (!templateFile) {
+                    message.error('模板文件不存在或已被删除');
+                    return;
+                }
+
+                // 使用 PizZip + Docxtemplater 在前端渲染
+                const arrayBuffer = await templateFile.arrayBuffer();
+                const zip = new PizZip(arrayBuffer);
+                const doc = new Docxtemplater(zip, {
+                    linebreaks: true,
+                    paragraphLoop: true,
+                });
+                doc.render(data as Record<string, unknown>);
+
+                const blob = doc.getZip().generate({
+                    type: 'blob',
+                    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                }) as Blob;
+
+                const fileName = `document_${Date.now()}.docx`;
+                saveAs(blob, fileName);
+                message.success('DOCX文档生成成功！');
+                return;
             }
 
             // 构建 FormData
