@@ -394,13 +394,12 @@ export default function CertificatePage() {
                                         {
                                             label: (
                                                 <div className="flex items-center">
-                                                    <SettingOutlined className="mr-2 text-gray-400" />
-                                                    <span className="text-gray-400">本地浏览器缓存</span>
-                                                    <span className="ml-2 text-xs text-gray-400">(未开发)</span>
+                                                    <SettingOutlined className="mr-2 text-blue-600" />
+                                                    <span>本地浏览器缓存</span>
                                                 </div>
                                             ),
                                             value: 'local',
-                                            disabled: true
+                                            disabled: false
                                         },
                                         {
                                             label: (
