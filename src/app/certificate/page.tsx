@@ -224,8 +224,9 @@ export default function CertificatePage() {
         } catch (error) {
             console.error('自动配置字段失败:', error);
             hideLoading();
+            const msg = error instanceof Error ? error.message : '未知错误';
             message.error({
-                content: '❌ 自动配置字段失败，请检查网络连接后重试',
+                content: `❌ 自动配置字段失败：${msg}`,
                 duration: 4,
             });
         } finally {
