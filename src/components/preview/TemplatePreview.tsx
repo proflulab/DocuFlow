@@ -16,26 +16,48 @@ const DocxView = (props: DocxViewProps) => {
         const fetchData = async () => {
             try {
                 const response = await fetch(fileInfo)
-                const data = await response.blob()
+                const data = await response.arrayBuffer() // 更稳妥
                 const containerElement = docxContainerRef.current
                 if (containerElement) {
-                    docx.renderAsync(data, containerElement).then(() => {
-                        console.info('docx: finished')
-                        setIsLoading(false)
-                    })
+                    containerElement.innerHTML = ''
+
+                    const options = {
+                        inWrapper: true,
+                        ignoreWidth: false,
+                        ignoreHeight: false,
+                        breakPages: true,
+                        ignoreFonts: false,
+                        renderHeaders: true,
+                        renderFooters: true,
+                        renderFootnotes: true,
+                        renderEndnotes: true,
+                        renderAltChunks: true,
+                        className: 'docx-preview'
+                    }
+
+                    await docx.renderAsync(data, containerElement, undefined, options)
+                    console.info('docx: finished')
                 }
-            } catch (error) {
-                setIsLoading(false)
+            } 
+            catch (error) {
                 console.error('Error fetching or rendering document:', error)
+            } 
+            
+            finally {
+                setIsLoading(false)
             }
         }
+<<<<<<< HEAD:src/components/preview/TemplatePreview.tsx
 
+=======
+>>>>>>> 403ccb4 (feat: improve docx preview rendering):DocuFlow-main/src/components/preview/TemplatePreview.tsx
         fetchData()
     }, [fileInfo])
 
+
     return (
         <div className="relative h-full">
-            <div ref={docxContainerRef} className="h-full" />
+            <div ref={docxContainerRef} className="h-full docx-container" />
             {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
                     <Spin size="large" />
