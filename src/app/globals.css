@@ -24,3 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.docx-container {
+    width: 794px;       /* Word 页面宽度 */
+    margin: 0 auto;     /* 居中 */
+    font-family: 'SimSun', 'Times New Roman', serif;
+}
+
+
