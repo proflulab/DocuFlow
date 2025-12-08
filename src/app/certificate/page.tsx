@@ -27,13 +27,21 @@ import { getCachedFilesMetadata, isLocalCacheSupported, getFileFromCache } from 
 
 const { Title } = Typography;
 
+// 本地模板接口定义
+interface LocalTemplate {
+    id: string;
+    name: string;
+    size: number;
+    uploadedAt: string;
+}
+
 export default function CertificatePage() {
 
   const [fields, setFields] = useState<FieldConfig[]>(DEFAULT_FIELDS);
     const [formData, setFormData] = useState<Record<string, string | number | boolean | null | undefined>>({});
     const [cloudTemplateName, setCloudTemplateName] = useState<string>('');
     const [cloudTemplates, setCloudTemplates] = useState<CloudTemplate[]>([]);
-    const [localTemplates, setLocalTemplates] = useState<any[]>([]);
+    const [localTemplates, setLocalTemplates] = useState<LocalTemplate[]>([]);
     const [localTemplateName, setLocalTemplateName] = useState<string>('');
     const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
     const [isLoadingLocalTemplates, setIsLoadingLocalTemplates] = useState(false);
@@ -83,13 +91,13 @@ export default function CertificatePage() {
                 id: file.id,
                 name: file.name,
                 size: file.size,
-                uploadedAt: file.createdAt
+                uploadedAt: new Date(file.createdAt).toISOString()
             }));
             
             setLocalTemplates(templates);
             
             // 如果当前选择的模板不在列表中，清空选择
-            if (localTemplateName && !templates.some((t: any) => t.name === localTemplateName)) {
+            if (localTemplateName && !templates.some((t: LocalTemplate) => t.name === localTemplateName)) {
                 setLocalTemplateName('');
             }
         } catch (error) {
@@ -167,8 +175,8 @@ export default function CertificatePage() {
                 const templateResponse = await fetch(selectedTemplate.url);
                 templateBlob = await templateResponse.blob();
             } else {
-                // 本地模板 - 从缓存中获取
-                const selectedTemplate = localTemplates.find((t: any) => t.name === selectedTemplateName);
+                // 本地模板 - 从缓存中获取文件
+                const selectedTemplate = localTemplates.find((t: LocalTemplate) => t.name === selectedTemplateName);
                 if (!selectedTemplate) {
                     throw new Error('指定的本地模板文件不存在');
                 }
@@ -590,7 +598,7 @@ export default function CertificatePage() {
                                                     templateBlob = await templateResponse.blob();
                                                 } else {
                                                     // 本地模板 - 从缓存获取文件
-                                                    const selectedTemplate = localTemplates.find((t: any) => t.name === selectedTemplateName);
+                                                    const selectedTemplate = localTemplates.find((t: LocalTemplate) => t.name === selectedTemplateName);
                                                     if (!selectedTemplate) {
                                                         throw new Error('指定的本地模板文件不存在');
                                                     }
