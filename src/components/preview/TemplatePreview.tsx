@@ -2,6 +2,25 @@ import React, { useEffect, useRef, useState } from 'react'
 import * as docx from 'docx-preview'
 import { Modal, Spin } from 'antd'
 
+// PDF 预览组件
+ interface PdfViewProps {
+     fileInfo: string
+ }
+ 
+ const PdfView = (props: PdfViewProps) => {
+     const { fileInfo } = props
+     return (
+         <div style={{ height: '100%', width: '100%' }}>
+             <embed
+                 src={fileInfo}
+                 type="application/pdf"
+                 width="100%"
+                 height="100%"
+             />
+         </div>
+     )
+ }
+
 // DocxView 组件用于渲染 docx 文档
 interface DocxViewProps {
     fileInfo: string
@@ -56,6 +75,9 @@ interface TemplatePreviewProps {
 const TemplatePreview = (props: TemplatePreviewProps) => {
     const { visible, onClose, templateUrl, templateName } = props
 
+    // 判断文件类型 - 由于我们暂时使用原始DOCX文件，使用DOCX预览
+    const isPdf = false; // 暂时使用DOCX预览，等PDF服务配置好后再切换
+
     return (
         <Modal
             title={`模板预览 - ${templateName}`}
@@ -67,7 +89,11 @@ const TemplatePreview = (props: TemplatePreviewProps) => {
         >
             {templateUrl && (
                 <div style={{ height: '800px', overflow: 'auto' }}>
-                    <DocxView fileInfo={templateUrl} />
+                    {isPdf ? (
+                        <PdfView fileInfo={templateUrl} />
+                    ) : (
+                        <DocxView fileInfo={templateUrl} />
+                    )}
                 </div>
             )}
         </Modal>

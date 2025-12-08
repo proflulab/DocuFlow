@@ -22,6 +22,7 @@ import { FIELD_TYPES, DEFAULT_FIELDS } from '../../constants/fields';
 import { CURRENCY_OPTIONS } from '../../constants/currencies';
 import { FieldConfig, CloudTemplate } from '../../types';
 import { inferFieldType } from '../../utils/fieldTypeInference';
+import { getCachedFilesMetadata, isLocalCacheSupported, getFileFromCache } from '../../utils/localCache';
 
 
 const { Title } = Typography;
@@ -32,7 +33,10 @@ export default function CertificatePage() {
     const [formData, setFormData] = useState<Record<string, string | number | boolean | null | undefined>>({});
     const [cloudTemplateName, setCloudTemplateName] = useState<string>('');
     const [cloudTemplates, setCloudTemplates] = useState<CloudTemplate[]>([]);
+    const [localTemplates, setLocalTemplates] = useState<any[]>([]);
+    const [localTemplateName, setLocalTemplateName] = useState<string>('');
     const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+    const [isLoadingLocalTemplates, setIsLoadingLocalTemplates] = useState(false);
     const [isAutoConfiguring, setIsAutoConfiguring] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const [previewVisible, setPreviewVisible] = useState(false);
@@ -65,20 +69,53 @@ export default function CertificatePage() {
         }
     }, [cloudTemplateName]);
 
+    // 获取本地模板列表
+    const fetchLocalTemplates = useCallback(async () => {
+        if (!isLocalCacheSupported()) {
+            message.warning('当前浏览器不支持本地缓存功能');
+            return;
+        }
+
+        setIsLoadingLocalTemplates(true);
+        try {
+            const metadata = getCachedFilesMetadata();
+            const templates = metadata.map(file => ({
+                id: file.id,
+                name: file.name,
+                size: file.size,
+                uploadedAt: file.createdAt
+            }));
+            
+            setLocalTemplates(templates);
+            
+            // 如果当前选择的模板不在列表中，清空选择
+            if (localTemplateName && !templates.some((t: any) => t.name === localTemplateName)) {
+                setLocalTemplateName('');
+            }
+        } catch (error) {
+            console.error('获取本地模板列表失败:', error);
+            message.error('获取本地模板列表失败');
+            setLocalTemplates([]);
+        } finally {
+            setIsLoadingLocalTemplates(false);
+        }
+    }, [localTemplateName]);
+
     // 组件初始化时获取云端模板列表
     React.useEffect(() => {
         const initializeComponent = async () => {
             try {
                 await fetchCloudTemplates();
+                await fetchLocalTemplates();
             } catch (error) {
-                console.error('Failed to fetch cloud templates:', error);
+                console.error('Failed to fetch templates:', error);
             } finally {
                 setIsInitialized(true);
             }
         };
 
         initializeComponent();
-    }, [fetchCloudTemplates]);
+    }, [fetchCloudTemplates, fetchLocalTemplates]);
 
     // 添加新字段
     const addField = () => {
@@ -107,7 +144,8 @@ export default function CertificatePage() {
 
     // 自动配置字段
     const autoConfigureFields = async () => {
-        if (!cloudTemplateName) {
+        const selectedTemplateName = templateSource === 'blob' ? cloudTemplateName : localTemplateName;
+        if (!selectedTemplateName) {
             message.warning('请先选择一个模板');
             return;
         }
@@ -116,19 +154,36 @@ export default function CertificatePage() {
         const hideLoading = message.loading('正在分析模板字段...', 0);
 
         try {
-            // 直接从已加载的cloudTemplates中找到选中的模板
-            const selectedTemplate = cloudTemplates.find((t: CloudTemplate) => t.name === cloudTemplateName);
-            if (!selectedTemplate) {
-                throw new Error('指定的模板文件不存在');
-            }
+            let templateBlob: Blob;
+            
+            if (templateSource === 'blob') {
+                // 云端模板 - 直接从已加载的cloudTemplates中找到选中的模板
+                const selectedTemplate = cloudTemplates.find((t: CloudTemplate) => t.name === selectedTemplateName);
+                if (!selectedTemplate) {
+                    throw new Error('指定的云端模板文件不存在');
+                }
 
-            // 下载模板文件
-            const templateResponse = await fetch(selectedTemplate.url);
-            const templateBlob = await templateResponse.blob();
+                // 下载模板文件
+                const templateResponse = await fetch(selectedTemplate.url);
+                templateBlob = await templateResponse.blob();
+            } else {
+                // 本地模板 - 从缓存中获取
+                const selectedTemplate = localTemplates.find((t: any) => t.name === selectedTemplateName);
+                if (!selectedTemplate) {
+                    throw new Error('指定的本地模板文件不存在');
+                }
+
+                // 从缓存获取文件
+                const file = await getFileFromCache(selectedTemplate.id);
+                if (!file) {
+                    throw new Error('本地模板文件不存在或已过期');
+                }
+                templateBlob = file;
+            }
 
             // 创建 FormData 并发送 POST 请求
             const formData = new FormData();
-            formData.append('template', templateBlob, cloudTemplateName);
+            formData.append('template', templateBlob, selectedTemplateName);
 
             const response = await fetch('/api/template-fields', {
                 method: 'POST',
@@ -394,13 +449,11 @@ export default function CertificatePage() {
                                         {
                                             label: (
                                                 <div className="flex items-center">
-                                                    <SettingOutlined className="mr-2 text-gray-400" />
-                                                    <span className="text-gray-400">本地浏览器缓存</span>
-                                                    <span className="ml-2 text-xs text-gray-400">(未开发)</span>
+                                                    <CloudOutlined className="mr-2 text-blue-600" />
+                                                    <span>本地浏览器缓存</span>
                                                 </div>
                                             ),
                                             value: 'local',
-                                            disabled: true
                                         },
                                         {
                                             label: (
@@ -466,43 +519,110 @@ export default function CertificatePage() {
                                     选择模板
                                 </label>
                                 <div className="flex gap-2">
-                                    <Select
-                                        placeholder="请选择云端模板文件"
-                                        value={cloudTemplateName || undefined}
-                                        onChange={(value) => setCloudTemplateName(value)}
-                                        className="flex-1"
-                                        loading={isLoadingTemplates}
-                                        showSearch
-                                        filterOption={(input, option) =>
-                                            (option?.value ?? '').toLowerCase().includes(input.toLowerCase())
-                                        }
-                                        options={cloudTemplates.map(template => ({
-                                            label: (
-                                                <div className="flex justify-between items-center">
-                                                    <span>{template.name}</span>
-                                                    <span className="text-xs text-gray-400">
-                                                        {(template.size / 1024).toFixed(1)}KB
-                                                    </span>
-                                                </div>
-                                            ),
-                                            value: template.name
-                                        }))}
-                                        notFoundContent={isLoadingTemplates ? '加载中...' : '暂无可用模板'}
-                                    />
+                                    {templateSource === 'blob' ? (
+                                        <Select
+                                            placeholder="请选择云端模板文件"
+                                            value={cloudTemplateName || undefined}
+                                            onChange={(value) => setCloudTemplateName(value)}
+                                            className="flex-1"
+                                            loading={isLoadingTemplates}
+                                            showSearch
+                                            filterOption={(input, option) =>
+                                                (option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+                                            }
+                                            options={cloudTemplates.map(template => ({
+                                                label: (
+                                                    <div className="flex justify-between items-center">
+                                                        <span>{template.name}</span>
+                                                        <span className="text-xs text-gray-400">
+                                                            {(template.size / 1024).toFixed(1)}KB
+                                                        </span>
+                                                    </div>
+                                                ),
+                                                value: template.name
+                                            }))}
+                                            notFoundContent={isLoadingTemplates ? '加载中...' : '暂无可用模板'}
+                                        />
+                                    ) : (
+                                        <Select
+                                            placeholder="请选择本地模板文件"
+                                            value={localTemplateName || undefined}
+                                            onChange={(value) => setLocalTemplateName(value)}
+                                            className="flex-1"
+                                            loading={isLoadingLocalTemplates}
+                                            showSearch
+                                            filterOption={(input, option) =>
+                                                (option?.value ?? '').toLowerCase().includes(input.toLowerCase())
+                                            }
+                                            options={localTemplates.map(template => ({
+                                                label: (
+                                                    <div className="flex justify-between items-center">
+                                                        <span>{template.name}</span>
+                                                        <span className="text-xs text-gray-400">
+                                                            {(template.size / 1024).toFixed(1)}KB
+                                                        </span>
+                                                    </div>
+                                                ),
+                                                value: template.name
+                                            }))}
+                                            notFoundContent={isLoadingLocalTemplates ? '加载中...' : '暂无本地模板'}
+                                        />
+                                    )}
                                     <Button
                                         icon={<EyeOutlined />}
-                                        onClick={() => {
-                                            if (cloudTemplateName) {
-                                                const selectedTemplate = cloudTemplates.find(t => t.name === cloudTemplateName);
-                                                if (selectedTemplate) {
-                                                    setPreviewTemplateUrl(selectedTemplate.url);
-                                                    setPreviewVisible(true);
-                                                }
-                                            } else {
+                                        onClick={async () => {
+                                            const selectedTemplateName = templateSource === 'blob' ? cloudTemplateName : localTemplateName;
+                                            if (!selectedTemplateName) {
                                                 message.warning('请先选择一个模板');
+                                                return;
+                                            }
+
+                                            try {
+                                                let templateBlob: Blob;
+                                                
+                                                if (templateSource === 'blob') {
+                                                    // 云端模板 - 下载模板文件
+                                                    const selectedTemplate = cloudTemplates.find((t: CloudTemplate) => t.name === selectedTemplateName);
+                                                    if (!selectedTemplate) {
+                                                        throw new Error('指定的云端模板文件不存在');
+                                                    }
+                                                    const templateResponse = await fetch(selectedTemplate.url);
+                                                    templateBlob = await templateResponse.blob();
+                                                } else {
+                                                    // 本地模板 - 从缓存获取文件
+                                                    const selectedTemplate = localTemplates.find((t: any) => t.name === selectedTemplateName);
+                                                    if (!selectedTemplate) {
+                                                        throw new Error('指定的本地模板文件不存在');
+                                                    }
+                                                    const file = await getFileFromCache(selectedTemplate.id);
+                                                    if (!file) {
+                                                        throw new Error('本地模板文件不存在或已过期');
+                                                    }
+                                                    templateBlob = file;
+                                                }
+
+                                                // 直接使用原始模板Blob进行预览（暂时跳过PDF转换）
+                                                // TODO: 当PDF转换服务配置好后，启用真实PDF转换
+                                                const previewBlob = templateBlob;
+                                                
+                                                // 创建预览URL（使用blob URL而不是data URL，避免大文件问题）
+                                                const previewUrl = URL.createObjectURL(previewBlob);
+                                                
+                                                // 在当前标签页的弹窗中预览模板
+                                                setPreviewTemplateUrl(previewUrl);
+                                                setPreviewVisible(true);
+                                                
+                                                // 清理临时URL（延迟清理，确保弹窗已经加载）
+                                                setTimeout(() => URL.revokeObjectURL(previewUrl), 300000); // 5分钟后清理
+                                                
+                                                message.success('模板预览已打开');
+                                                
+                                            } catch (error) {
+                                                console.error('模板预览失败:', error);
+                                                message.error('模板预览失败，请重试');
                                             }
                                         }}
-                                        disabled={!cloudTemplateName || isLoadingTemplates}
+                                        disabled={!(templateSource === 'blob' ? cloudTemplateName : localTemplateName) || (templateSource === 'blob' ? isLoadingTemplates : isLoadingLocalTemplates)}
                                         title="预览模板"
                                     >
                                         预览
