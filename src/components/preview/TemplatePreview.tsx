@@ -1,46 +1,42 @@
-import React, { useEffect, useRef, useState } from 'react'
-import * as docx from 'docx-preview'
+import React, { useState } from 'react'
 import { Modal, Spin } from 'antd'
 
-// DocxView 组件用于渲染 docx 文档
-interface DocxViewProps {
-    fileInfo: string
+// OfficeWebViewer 组件使用微软 Office Web Viewer 来预览文档
+interface OfficeWebViewerProps {
+    fileUrl: string
 }
 
-const DocxView = (props: DocxViewProps) => {
-    const { fileInfo } = props
+const OfficeWebViewer = (props: OfficeWebViewerProps) => {
+    const { fileUrl } = props
     const [isLoading, setIsLoading] = useState<boolean>(true)
-    const docxContainerRef = useRef<HTMLDivElement | null>(null)
+    
+    // 构建 Office Web Viewer 的嵌入 URL
+    const getOfficeWebViewerUrl = (url: string) => {
+        // 确保 URL 是公开可访问的，并且需要进行 URL 编码
+        const encodedUrl = encodeURIComponent(url)
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}`
+    }
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch(fileInfo)
-                const data = await response.blob()
-                const containerElement = docxContainerRef.current
-                if (containerElement) {
-                    docx.renderAsync(data, containerElement).then(() => {
-                        console.info('docx: finished')
-                        setIsLoading(false)
-                    })
-                }
-            } catch (error) {
-                setIsLoading(false)
-                console.error('Error fetching or rendering document:', error)
-            }
-        }
-
-        fetchData()
-    }, [fileInfo])
+    const handleIframeLoad = () => {
+        setIsLoading(false)
+    }
 
     return (
         <div className="relative h-full">
-            <div ref={docxContainerRef} className="h-full" />
             {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
                     <Spin size="large" />
                 </div>
             )}
+            <iframe
+                src={getOfficeWebViewerUrl(fileUrl)}
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                onLoad={handleIframeLoad}
+                title="Office Document Preview"
+                style={{ minHeight: '750px' }}
+            />
         </div>
     )
 }
@@ -67,7 +63,7 @@ const TemplatePreview = (props: TemplatePreviewProps) => {
         >
             {templateUrl && (
                 <div style={{ height: '800px', overflow: 'auto' }}>
-                    <DocxView fileInfo={templateUrl} />
+                    <OfficeWebViewer fileUrl={templateUrl} />
                 </div>
             )}
         </Modal>
