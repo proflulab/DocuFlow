@@ -589,39 +589,30 @@ export default function CertificatePage() {
                                                 let templateBlob: Blob;
                                                 
                                                 if (templateSource === 'blob') {
-                                                    // 云端模板 - 下载模板文件
+                                                    // 云端模板 - 直接使用已有公网地址
                                                     const selectedTemplate = cloudTemplates.find((t: CloudTemplate) => t.name === selectedTemplateName);
                                                     if (!selectedTemplate) {
                                                         throw new Error('指定的云端模板文件不存在');
                                                     }
-                                                    const templateResponse = await fetch(selectedTemplate.url);
-                                                    templateBlob = await templateResponse.blob();
+                                                    setPreviewTemplateUrl(selectedTemplate.url);
+                                                    setPreviewVisible(true);
+                                                    message.success('模板预览已打开');
+                                                    return;
                                                 } else {
-                                                    // 本地模板 - 从缓存获取文件
+                                                    // 本地模板 - 直接使用公网地址（已同步到 public/word/）
                                                     const selectedTemplate = localTemplates.find((t: LocalTemplate) => t.name === selectedTemplateName);
                                                     if (!selectedTemplate) {
                                                         throw new Error('指定的本地模板文件不存在');
                                                     }
-                                                    const file = await getFileFromCache(selectedTemplate.id);
-                                                    if (!file) {
-                                                        throw new Error('本地模板文件不存在或已过期');
-                                                    }
-                                                    templateBlob = file;
+                                                    // 拼公网地址供 Office Viewer 使用
+                                                    const publicUrl = `${window.location.origin}/word/${selectedTemplate.name}`;
+                                                    setPreviewTemplateUrl(publicUrl);
+                                                    setPreviewVisible(true);
+                                                    message.success('模板预览已打开');
+                                                    return; // 提前结束，不再走下方 blob 逻辑
                                                 }
 
-                                                // 直接使用原始模板Blob进行预览（暂时跳过PDF转换）
-                                                // TODO: 当PDF转换服务配置好后，启用真实PDF转换
-                                                const previewBlob = templateBlob;
                                                 
-                                                // 创建预览URL（使用blob URL而不是data URL，避免大文件问题）
-                                                const previewUrl = URL.createObjectURL(previewBlob);
-                                                
-                                                // 在当前标签页的弹窗中预览模板
-                                                setPreviewTemplateUrl(previewUrl);
-                                                setPreviewVisible(true);
-                                                
-                                                // 清理临时URL（延迟清理，确保弹窗已经加载）
-                                                setTimeout(() => URL.revokeObjectURL(previewUrl), 300000); // 5分钟后清理
                                                 
                                                 message.success('模板预览已打开');
                                                 

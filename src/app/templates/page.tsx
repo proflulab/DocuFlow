@@ -59,6 +59,7 @@ interface TemplateFile {
   url?: string;
   uploadedAt: string;
   pathname?: string;
+  publicName?: string;   // 本地模板对外文件名
 }
 
 export default function TemplatesPage() {
@@ -112,11 +113,12 @@ export default function TemplatesPage() {
     try {
       const metadata = getCachedFilesMetadata();
       const templates: TemplateFile[] = metadata.map(file => ({
-        id: file.id,
+        id: file.publicName || file.name,  // 用唯一 publicName 当 key
         name: file.name,
         size: file.size,
         type: 'local',
-        uploadedAt: new Date(file.createdAt).toISOString()
+        uploadedAt: new Date(file.createdAt).toISOString(),
+        publicName: file.publicName
       }));
 
       setLocalTemplates(templates);
@@ -169,12 +171,31 @@ export default function TemplatesPage() {
   const handleLocalUpload = async (file: File) => {
     try {
       setUploading(true);
-      await addFileToCache(file);
-      message.success('模板保存到本地缓存成功');
-      loadLocalTemplates();
+      const pathname = `templates/${file.name}`;
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('pathname', pathname);
+      formData.append('addRandomSuffix', 'false');
+      formData.append('allowOverwrite', 'true');
+
+      const res = await fetch('/api/blob', { method: 'POST', body: formData });
+      const result = await res.json();
+
+      if (!result.success) throw new Error(result.message || '上传失败');
+
+      // 把这条“本地上传”当成云端记录写 IndexedDB，type 用 cloud
+      await addFileToCache(
+        new File([file], file.name, { type: file.type }),
+        result.url                                           // 这里 publicName 直接用 Blob URL
+      );
+
+      message.success('模板已上传至云端');
+      // 重新拉一次列表即可出现“来源：云端”
+      loadCloudTemplates();
     } catch (error) {
-      console.error('保存到本地失败:', error);
-      message.error('保存到本地失败，请重试');
+      console.error('本地上传失败:', error);
+      message.error('上传失败，请重试');
     } finally {
       setUploading(false);
     }
@@ -219,8 +240,14 @@ export default function TemplatesPage() {
       setPreviewUrl(template.url);
       setPreviewName(template.name);
       setPreviewVisible(true);
+    } else if (template.type === 'local') {
+      // 本地模板：拼公网地址（已同步到 public/word/）
+      const publicUrl = `${window.location.origin}/word/${template.publicName}`;
+      setPreviewUrl(publicUrl);
+      setPreviewName(template.name);
+      setPreviewVisible(true);
     } else {
-      message.info('本地模板暂不支持在线预览');
+      message.info('无法生成预览地址');
     }
   };
 
@@ -324,7 +351,6 @@ export default function TemplatesPage() {
               type="text"
               icon={<EyeOutlined />}
               onClick={() => handlePreview(record)}
-              disabled={record.type === 'local'}
             />
           </Tooltip>
           {record.type === 'local' && (

@@ -11,6 +11,7 @@ export interface CachedFile {
     type: string;
     lastModified: number;
     createdAt: number;
+    publicName?: string;   // 本地文件对外公开的文件名（唯一）
 }
 
 // IndexedDB 数据库配置
@@ -44,7 +45,15 @@ function initDB(): Promise<IDBDatabase> {
 export function getCachedFilesMetadata(): CachedFile[] {
     try {
         const metadata = localStorage.getItem(METADATA_KEY);
-        return metadata ? JSON.parse(metadata) : [];
+        if (!metadata) return [];
+        const list: CachedFile[] = JSON.parse(metadata);
+        // 1. 给旧记录补 publicName；2. 去重（同名只留最新）
+        const map = new Map<string, CachedFile>();
+        list.forEach((f) => {
+            if (!(f as any).publicName) (f as any).publicName = f.name;
+            map.set((f as any).publicName, f);
+        });
+        return Array.from(map.values());
     } catch (error) {
         console.error('获取缓存文件元数据失败:', error);
         return [];
@@ -73,19 +82,21 @@ function generateFileId(): string {
 /**
  * 添加文件到本地缓存
  */
-export async function addFileToCache(file: File): Promise<string> {
+export async function addFileToCache(file: File, publicName?: string): Promise<{ fileId: string; publicName: string }> {
     try {
         const db = await initDB();
         const fileId = generateFileId();
 
         // 创建文件元数据
+        const finalPublicName = publicName || file.name;
         const metadata: CachedFile = {
             id: fileId,
             name: file.name,
             size: file.size,
             type: file.type,
             lastModified: file.lastModified,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            publicName: finalPublicName
         };
 
         // 将文件内容转换为 ArrayBuffer
@@ -111,7 +122,7 @@ export async function addFileToCache(file: File): Promise<string> {
         currentMetadata.push(metadata);
         updateCachedFilesMetadata(currentMetadata);
 
-        return fileId;
+        return { fileId, publicName: finalPublicName };
     } catch (error) {
         console.error('添加文件到缓存失败:', error);
         throw new Error('添加文件到缓存失败');
