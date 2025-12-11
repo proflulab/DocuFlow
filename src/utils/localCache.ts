@@ -49,9 +49,9 @@ export function getCachedFilesMetadata(): CachedFile[] {
         const list: CachedFile[] = JSON.parse(metadata);
         // 1. 给旧记录补 publicName；2. 去重（同名只留最新）
         const map = new Map<string, CachedFile>();
-        list.forEach((f) => {
-            if (!(f as any).publicName) (f as any).publicName = f.name;
-            map.set((f as any).publicName, f);
+        list.forEach((f: CachedFile) => {
+            if (!f.publicName) f.publicName = f.name;
+            map.set(f.publicName!, f);
         });
         return Array.from(map.values());
     } catch (error) {

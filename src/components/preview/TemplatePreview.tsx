@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { Modal, Spin } from 'antd'
+import React from 'react'
+import { Modal } from 'antd'
 
 /**
  * 微软 Office Web Viewer 组件

@@ -586,7 +586,6 @@ export default function CertificatePage() {
                                             }
 
                                             try {
-                                                let templateBlob: Blob;
                                                 
                                                 if (templateSource === 'blob') {
                                                     // 云端模板 - 直接使用已有公网地址
