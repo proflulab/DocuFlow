@@ -1,46 +1,50 @@
-import React, { useEffect, useRef, useState } from 'react'
-import * as docx from 'docx-preview'
+/*
+ * @Author: 杨仕明 shiming.y@qq.com
+ * @Date: 2025-11-27 20:38:28
+ * @LastEditors: 杨仕明 shiming.y@qq.com
+ * @LastEditTime: 2025-12-10 21:14:57
+ * @FilePath: /docuflow/src/components/preview/TemplatePreview.tsx
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
+
+import React, { useState } from 'react'
 import { Modal, Spin } from 'antd'
 
-// DocxView 组件用于渲染 docx 文档
-interface DocxViewProps {
-    fileInfo: string
+// OfficeWebViewer 组件使用微软 Office Web Viewer 来预览文档
+interface OfficeWebViewerProps {
+    fileUrl: string
 }
 
-const DocxView = (props: DocxViewProps) => {
-    const { fileInfo } = props
+const OfficeWebViewer = (props: OfficeWebViewerProps) => {
+    const { fileUrl } = props
     const [isLoading, setIsLoading] = useState<boolean>(true)
-    const docxContainerRef = useRef<HTMLDivElement | null>(null)
+    
+    // 构建 Office Web Viewer 的嵌入 URL
+    const getOfficeWebViewerUrl = (url: string) => {
+        // 确保 URL 是公开可访问的，并且需要进行 URL 编码
+        const encodedUrl = encodeURIComponent(url)
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodedUrl}`
+    }
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch(fileInfo)
-                const data = await response.blob()
-                const containerElement = docxContainerRef.current
-                if (containerElement) {
-                    docx.renderAsync(data, containerElement).then(() => {
-                        console.info('docx: finished')
-                        setIsLoading(false)
-                    })
-                }
-            } catch (error) {
-                setIsLoading(false)
-                console.error('Error fetching or rendering document:', error)
-            }
-        }
-
-        fetchData()
-    }, [fileInfo])
+    const handleIframeLoad = () => {
+        setIsLoading(false)
+    }
 
     return (
         <div className="relative h-full">
-            <div ref={docxContainerRef} className="h-full" />
             {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75">
+                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 z-10">
                     <Spin size="large" />
                 </div>
             )}
+            <iframe
+                src={getOfficeWebViewerUrl(fileUrl)}
+                width="100%"
+                height="100%"
+                onLoad={handleIframeLoad}
+                title="Office Document Preview"
+                style={{ minHeight: '750px', border: 'none' }}
+            />
         </div>
     )
 }
@@ -67,7 +71,7 @@ const TemplatePreview = (props: TemplatePreviewProps) => {
         >
             {templateUrl && (
                 <div style={{ height: '800px', overflow: 'auto' }}>
-                    <DocxView fileInfo={templateUrl} />
+                    <OfficeWebViewer fileUrl={templateUrl} />
                 </div>
             )}
         </Modal>
