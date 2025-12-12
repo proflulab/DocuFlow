@@ -109,11 +109,11 @@ export default function FieldConfiguration({
             className="w-full"
             styles={{ popup: { root: { minWidth: '230px' } } }}
             options={[
-              { label: '2024-01-01', value: 'YYYY-MM-DD' },
-              { label: '2024/01/01', value: 'YYYY/MM/DD' },
-              { label: '01/01/2024', value: 'MM/DD/YYYY' },
-              { label: '2024年1月1日', value: 'YYYY年M月D日' },
-              { label: '1月1日', value: 'M月D日' },
+              { label: 'YYYY-MM-DD', value: 'YYYY-MM-DD' },
+              { label: 'YYYY/MM/DD', value: 'YYYY/MM/DD' },
+              { label: 'MM/DD/YYYY', value: 'MM/DD/YYYY' },
+              { label: 'YYYY年M月D日', value: 'YYYY年M月D日' },
+              { label: 'M月D日', value: 'M月D日' },
               { label: 'January 1, 2024', value: 'MMMM D, YYYY' },
               { label: 'Jan 1, 2024', value: 'MMM D, YYYY' },
               { label: '1st January 2024', value: 'Do MMMM YYYY' },
