@@ -11,7 +11,7 @@
 import React from 'react';
 import dayjs from 'dayjs';
 import { FieldConfig } from '../../types';
-import { FIELD_TYPES } from '../../constants/fields';
+import { DEFAULT_FIELDS, FIELD_TYPES } from '../../constants/fields';
 import { COUNTRIES } from '../../constants/countries';
 import { CURRENCY_OPTIONS } from '../../constants/currencies';
 import { PlusOutlined, DeleteOutlined, SettingOutlined } from '@ant-design/icons';
@@ -28,6 +28,9 @@ interface FieldConfigurationProps {
   onFormDataChange: (formData: Record<string, string | number | boolean | null | undefined>) => void;
   onAutoConfigure: () => void;
 }
+
+// 导出默认字段配置供外部使用
+export { DEFAULT_FIELDS };
 
 export default function FieldConfiguration({
   fields,

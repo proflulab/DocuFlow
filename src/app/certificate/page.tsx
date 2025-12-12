@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-16 03:16:37
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-12-12 17:36:21
+ * @LastEditTime: 2025-12-12 17:51:54
  * @FilePath: /next_word_auto/src/app/certificate/page.tsx
  * @Description: 
  * 
@@ -11,16 +11,15 @@
 
 'use client';
 
+import { SettingOutlined } from '@ant-design/icons';
 import React, { useState, useCallback } from 'react';
-import { Button, Card, Typography, message, Select } from 'antd';
+import { FieldConfig, CloudTemplate } from '../../types';
 import { CloudOutlined, EyeOutlined } from '@ant-design/icons';
+import { inferFieldType } from '../../utils/fieldTypeInference';
+import { Button, Card, Typography, message, Select } from 'antd';
 import TemplatePreview from '../../components/preview/TemplatePreview';
 import DocumentGenerator from '../../components/generators/DocumentGenerator';
-import FieldConfiguration from '../../components/fields/FieldConfiguration';
-import { DEFAULT_FIELDS } from '../../constants/fields';
-import { FieldConfig, CloudTemplate } from '../../types';
-import { inferFieldType } from '../../utils/fieldTypeInference';
-import { SettingOutlined } from '@ant-design/icons';
+import FieldConfiguration, { DEFAULT_FIELDS } from '../../components/fields/FieldConfiguration';
 
 
 const { Title } = Typography;
