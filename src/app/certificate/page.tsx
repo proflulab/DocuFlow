@@ -248,14 +248,14 @@ export default function CertificatePage() {
                     <Select
                         value={field.countryLang || 'zh'}
                         onChange={(lang) => {
-                            // 更新字段的 countryLang，同时把 countryValue 清空
-                            const newFields = fields.map(f =>
-                                f.id === field.id ? { ...f, countryLang: lang as any, countryValue: '' } : f
-                            );
-                            setFields(newFields);
-                            // 表单值也清空
-                            setFormData(prev => ({ ...prev, [field.name]: '' }));
-                        }}
+                                // 更新字段的 countryLang，同时把 countryValue 清空
+                                const newFields = fields.map(f =>
+                                    f.id === field.id ? { ...f, countryLang: lang as CountryLang, countryValue: '' } : f
+                                );
+                                setFields(newFields);
+                                // 表单值也清空
+                                setFormData(prev => ({ ...prev, [field.name]: '' }));
+                            }}
                         size="small"
                         className="w-full"
                         options={COUNTRY_LANG_OPTIONS}
