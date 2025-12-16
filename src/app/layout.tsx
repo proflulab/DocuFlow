@@ -9,7 +9,6 @@
  * Copyright (c) 2025 by ${git_name_email}, All Rights Reserved. 
  */
 
-import '@ant-design/v5-patch-for-react-19';
 import type { Metadata } from "next";
 import "./globals.css";
 import Navigation from "../components/layout/Navigation";
