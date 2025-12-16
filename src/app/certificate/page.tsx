@@ -17,7 +17,7 @@ import { PlusOutlined, DeleteOutlined, CloudOutlined, SettingOutlined, EyeOutlin
 import TemplatePreview from '../../components/preview/TemplatePreview';
 import DocumentGenerator from '../../components/generators/DocumentGenerator';
 import dayjs from 'dayjs';
-import { COUNTRY_LANG_OPTIONS, HOT_COUNTRIES } from '../../constants/countries';
+import { COUNTRY_LANG_OPTIONS, HOT_COUNTRIES, CountryLang } from '../../constants/countries';
 import { FIELD_TYPES, DEFAULT_FIELDS } from '../../constants/fields';
 import { CURRENCY_OPTIONS } from '../../constants/currencies';
 import { FieldConfig, CloudTemplate } from '../../types';
