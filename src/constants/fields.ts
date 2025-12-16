@@ -19,6 +19,7 @@ export const FIELD_TYPES = [
     { label: '货币', value: 'currency' },
     { label: '日期', value: 'date' },
     { label: '国家', value: 'country' },
+    { label: '语言选项', value: 'language' },
 ];
 
 // 默认字段配置
