@@ -18,8 +18,7 @@ export const FIELD_TYPES = [
     { label: '号码', value: 'phone' },
     { label: '货币', value: 'currency' },
     { label: '日期', value: 'date' },
-    { label: '国家', value: 'country' },
-    { label: '语言选项', value: 'language' },
+    { label: '国家', value: 'country' }
 ];
 
 // 默认字段配置
