@@ -178,9 +178,9 @@ export default function CertificatePage() {
                 return (
                     <div className="flex gap-2">
                         <Select
-                            value={field.format?.currencySymbol || '¥'}
+                            value={field.format?.currencyCode || 'CNY'}
                             onChange={(value) => updateField(field.id, {
-                                format: { ...field.format, currencySymbol: value }
+                                format: { ...field.format, currencyCode: value }
                             })}
                             size="small"
                             className="w-16"
@@ -316,7 +316,7 @@ export default function CertificatePage() {
                         size="small"
                         className="w-full"
                         style={{ width: '100%', }}
-                        prefix={field.format?.currencySymbol || '¥'}
+                        prefix={field.format?.currencyCode || 'CNY'}
                         precision={field.format?.decimalPlaces || 2}
                         min={0}
                         status={isRequired && !hasValue ? 'error' : undefined}

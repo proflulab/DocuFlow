@@ -26,5 +26,5 @@ export const DEFAULT_FIELDS: FieldConfig[] = [
     { id: '1', name: 'name', type: 'text', value: '', required: true },
     { id: '2', name: 'email', type: 'email', value: '', required: true },
     { id: '3', name: 'phone', type: 'phone', value: '', required: false },
-    { id: '4', name: 'amount', type: 'currency', value: 0, required: false, format: { currencySymbol: '¥', decimalPlaces: 2 } },
+    { id: '4', name: 'amount', type: 'currency', value: 0, required: false, format: { currencyCode: 'CNY', decimalPlaces: 2 } },
 ];
