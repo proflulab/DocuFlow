@@ -18,7 +18,7 @@ export interface FieldConfig {
     options?: string[]; // 用于select类型
     required?: boolean;
     format?: {
-        currencySymbol?: string;
+        currencyCode?: string;
         decimalPlaces?: number;
         dateFormat?: string;
         numberFormat?: string;
