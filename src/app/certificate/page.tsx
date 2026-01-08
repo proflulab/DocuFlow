@@ -2,7 +2,7 @@
  * @Author: 杨仕明 shiming.y@qq.com
  * @Date: 2025-08-16 03:16:37
  * @LastEditors: 杨仕明 shiming.y@qq.com
- * @LastEditTime: 2025-08-20 13:05:28
+ * @LastEditTime: 2026-01-08 20:54:02
  * @FilePath: /next_word_auto/src/app/certificate/page.tsx
  * @Description: 
  * 
@@ -178,12 +178,12 @@ export default function CertificatePage() {
                 return (
                     <div className="flex gap-2">
                         <Select
-                            value={field.format?.currencySymbol || '¥'}
+                            value={field.format?.currencySymbol || 'CNY'}
                             onChange={(value) => updateField(field.id, {
                                 format: { ...field.format, currencySymbol: value }
                             })}
                             size="small"
-                            className="w-16"
+                            className="w-20"
                             options={CURRENCY_OPTIONS}
                         />
                         <Select
