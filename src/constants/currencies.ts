@@ -12,9 +12,9 @@
 export const CURRENCIES = [
     { label: '$', value: 'USD', name: '美元 (USD)' },
     { label: '€', value: 'EUR', name: '欧元 (EUR)' },
-    { label: '¥ (CNY)', value: 'CNY', name: '人民币 (CNY)' },
+    { label: '¥(CNY)', value: 'CNY', name: '人民币 (CNY)' },
     { label: '£', value: 'GBP', name: '英镑 (GBP)' },
-    { label: '¥ (JPY)', value: 'JPY', name: '日元 (JPY)' },
+    { label: '¥(JPY)', value: 'JPY', name: '日元 (JPY)' },
     { label: '₹', value: 'INR', name: '印度卢比 (INR)' },
     { label: 'C$', value: 'CAD', name: '加拿大元 (CAD)' },
     { label: 'A$', value: 'AUD', name: '澳大利亚元 (AUD)' },

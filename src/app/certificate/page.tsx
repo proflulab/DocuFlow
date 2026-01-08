@@ -183,7 +183,7 @@ export default function CertificatePage() {
                                 format: { ...field.format, currencyCode: value }
                             })}
                             size="small"
-                            className="w-16"
+                            className="w-20"
                             options={CURRENCY_OPTIONS}
                         />
                         <Select
