@@ -22,11 +22,12 @@ import { FIELD_TYPES, DEFAULT_FIELDS } from '../../constants/fields';
 import { CURRENCY_OPTIONS } from '../../constants/currencies';
 import { FieldConfig, CloudTemplate } from '../../types';
 import { inferFieldType } from '../../utils/fieldTypeInference';
+import DashboardLayout from '../../layouts/DashboardLayout';
 
 
 const { Title } = Typography;
 
-export default function CertificatePage() {
+const CertificatePageContent = () => {
 
   const [fields, setFields] = useState<FieldConfig[]>(DEFAULT_FIELDS);
     const [formData, setFormData] = useState<Record<string, string | number | boolean | null | undefined>>({});
@@ -774,4 +775,12 @@ export default function CertificatePage() {
             />
         </div>
     );
+}
+
+export default function CertificatePage() {
+  return (
+    <DashboardLayout>
+      <CertificatePageContent />
+    </DashboardLayout>
+  );
 }

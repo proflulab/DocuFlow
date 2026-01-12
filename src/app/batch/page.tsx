@@ -1,7 +1,7 @@
 import Link from "next/link";
+import DashboardLayout from '../../layouts/DashboardLayout';
 
-export default function BatchPage() {
-
+const BatchPageContent = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
 
@@ -51,5 +51,13 @@ export default function BatchPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function BatchPage() {
+  return (
+    <DashboardLayout>
+      <BatchPageContent />
+    </DashboardLayout>
   );
 }
