@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, FileText, LayoutTemplate, Bot } from 'lucide-react';
 
 const navLinks = [
-  { href: '/certificate', label: '动态文档生成器' },
-  { href: '/templates', label: '模板管理系统' },
-  { href: '/batch', label: '批量处理中心' },
+  { href: '/certificate', label: '动态文档生成器', icon: FileText, color: 'text-blue-500' },
+  { href: '/templates', label: '模板管理系统', icon: LayoutTemplate, color: 'text-orange-500' },
+  { href: '/batch', label: '批量处理中心', icon: Bot, color: 'text-green-500' },
 ];
 
 interface SidebarProps {
@@ -30,18 +30,25 @@ const Sidebar = ({ isCollapsed, toggleSidebar }: SidebarProps) => {
         <ul>
           {navLinks.map(link => {
             const isActive = pathname.startsWith(link.href);
+            const Icon = link.icon;
             return (
-              <li key={link.href} className="mb-2">
+              <li key={link.href} className="mb-2 group relative">
                 <Link
                   href={link.href}
                   className={`block p-3 rounded-lg transition-colors font-medium flex items-center ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-md'
                       : 'hover:bg-gray-200 dark:hover:bg-gray-700'
-                  }`}
+                  } ${isCollapsed ? 'justify-center' : ''}`}
                 >
+                  <Icon className={`h-6 w-6 ${isCollapsed ? '' : 'mr-4'} ${link.color}`} />
                   <span className={`${isCollapsed ? 'hidden' : 'block'}`}>{link.label}</span>
                 </Link>
+                {isCollapsed && (
+                  <Link href={link.href} className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-4 py-2 bg-gray-800 text-white text-base rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    {link.label}
+                  </Link>
+                )}
               </li>
             );
           })}
