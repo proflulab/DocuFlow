@@ -47,6 +47,8 @@ import {
   isLocalCacheSupported
 } from '@/utils/localCache';
 
+import DashboardLayout from '../../layouts/DashboardLayout';
+
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
 
@@ -61,7 +63,7 @@ interface TemplateFile {
   pathname?: string;
 }
 
-export default function TemplatesPage() {
+const TemplatesPageContent = () => {
   const [cloudTemplates, setCloudTemplates] = useState<TemplateFile[]>([]);
   const [localTemplates, setLocalTemplates] = useState<TemplateFile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -503,5 +505,13 @@ export default function TemplatesPage() {
         </Modal>
       </main>
     </div>
+  );
+}
+
+export default function TemplatesPage() {
+  return (
+    <DashboardLayout>
+      <TemplatesPageContent />
+    </DashboardLayout>
   );
 }
