@@ -1,13 +1,22 @@
 'use client';
 
 import Sidebar from '../components/ui/Sidebar';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  useEffect(() => {
+    const storedIsCollapsed = localStorage.getItem('isSidebarCollapsed');
+    if (storedIsCollapsed) {
+      setIsSidebarCollapsed(JSON.parse(storedIsCollapsed));
+    }
+  }, []);
+
   const toggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
+    const newIsCollapsed = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newIsCollapsed);
+    localStorage.setItem('isSidebarCollapsed', JSON.stringify(newIsCollapsed));
   };
 
   return (
